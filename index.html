@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -138,10 +137,9 @@ position:absolute;
 pointer-events:none;
 z-index:1100;
 transition:transform 0.1s;
-} </style>
-
+} 
+</style>
 </head>
-
 <body class="light-mode">
 
 <img id="leftGif" class="side-gif" src="gifs/left.gif">
@@ -163,7 +161,8 @@ transition:transform 0.1s;
 <div id="lapCounterDisplay">Lap Count: 0</div>
 <div id="laps"><ul id="lapList"></ul></div>
 
-<audio id="rainbowBGM" src="sounds/bgm.mp3" loop></audio> <audio id="clickSound" src="sounds/sound1.mp3"></audio>
+<audio id="rainbowBGM" src="sounds/bgm.mp3" loop></audio>
+<audio id="clickSound" src="sounds/sound1.mp3"></audio>
 
 <script>
 const timer = document.getElementById('timer');
@@ -183,7 +182,6 @@ let startTime=0, elapsedTime=0, timerInterval=null, running=false, rainbowActive
 let laps=[], lapCounter=0;
 let addedGifs=[];
 
-/* 初期状態反映 */
 if(body.classList.contains('dark-mode')){
   themeToggleBtn.textContent = "Dark ON";
 }else{
@@ -223,12 +221,7 @@ function renderLaps(){
 themeToggleBtn.addEventListener('click',()=>{
   body.classList.toggle('dark-mode');
   body.classList.toggle('light-mode');
-
-  if(body.classList.contains('dark-mode')){
-    themeToggleBtn.textContent = "Dark ON";
-  }else{
-    themeToggleBtn.textContent = "Dark OFF";
-  }
+  themeToggleBtn.textContent = body.classList.contains('dark-mode') ? "Dark ON" : "Dark OFF";
 });
 
 startStopBtn.addEventListener('click',()=>{
@@ -242,7 +235,6 @@ startStopBtn.addEventListener('click',()=>{
     elapsedTime=Date.now()-startTime;
     startStopBtn.textContent='Start';
     running=false;
-
     if(elapsedTime>0){
       lapCounter++;
       laps.unshift({number:lapCounter,time:formatTime(elapsedTime)});
@@ -262,7 +254,6 @@ resetBtn.addEventListener('click',()=>{
   laps=[]; lapCounter=0;
   updateLapCounterDisplay();
   renderLaps();
-
   addedGifs.forEach(obj=>clearInterval(obj.sizeInterval));
   addedGifs.forEach(obj=>obj.el.remove());
   addedGifs=[];
@@ -270,7 +261,6 @@ resetBtn.addEventListener('click',()=>{
 
 rainbowBtn.addEventListener('click',()=>{
   rainbowActive=!rainbowActive;
-
   if(rainbowActive){
     body.classList.add('rainbow-theme');
     leftGif.style.display='block';
@@ -288,7 +278,6 @@ rainbowBtn.addEventListener('click',()=>{
     rainbowBtn.textContent="Rainbow OFF";
     rainbowBGM.pause();
     rainbowBGM.currentTime=0;
-
     addedGifs.forEach(obj=>clearInterval(obj.sizeInterval));
     addedGifs.forEach(obj=>obj.el.remove());
     addedGifs=[];
@@ -309,16 +298,13 @@ document.addEventListener('click',(e)=>{
 
   let x=e.clientX;
   let y=e.clientY;
-
   const gifSize=100;
   const maxX=window.innerWidth-gifSize/2;
   const maxY=window.innerHeight-gifSize/2;
   const minX=gifSize/2;
   const minY=gifSize/2;
-
   x=Math.min(Math.max(x,minX),maxX);
   y=Math.min(Math.max(y,minY),maxY);
-
   clickGif.style.left=`${x}px`;
   clickGif.style.top=`${y}px`;
   clickGif.style.width=`${gifSize}px`;
@@ -326,6 +312,12 @@ document.addEventListener('click',(e)=>{
   clickGif.style.transform='translate(-50%,-50%)';
 
   document.body.appendChild(clickGif);
+
+  // special.gif のときだけ sound2.mp3 再生
+  if(isSpecial){
+    const specialSound = new Audio('sounds/sound2.mp3');
+    specialSound.play().catch(()=>{});
+  }
 
   let size=gifSize;
   const sizeInterval=setInterval(()=>{
@@ -341,28 +333,17 @@ document.addEventListener('click',(e)=>{
   function move(){
     x+=vx;
     y+=vy;
-
-    if(x-size/2<=0||x+size/2>=window.innerWidth){
-      vx*=-1;
-      flippedX*=-1;
-    }
-
-    if(y-size/2<=0||y+size/2>=window.innerHeight){
-      vy*=-1;
-    }
-
+    if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
+    if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
     clickGif.style.left=`${x}px`;
     clickGif.style.top=`${y}px`;
     clickGif.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
-
     requestAnimationFrame(move);
   }
-
   move();
 
   addedGifs.push({el:clickGif,sizeInterval});
 },true);
 </script>
-
 </body>
 </html>
