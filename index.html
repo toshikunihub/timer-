@@ -1,53 +1,169 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <title>タイマー</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
-body { font-family: Arial,sans-serif; text-align:center; margin-top:50px; transition:background-color 0.5s,color 0.5s; position:relative; -webkit-tap-highlight-color:transparent; }
+body {
+  font-family: Arial,sans-serif;
+  text-align:center;
+  margin:0;
+  padding-top:50px;
+  transition: background-color 0.5s, color 0.5s;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
 body.light-mode{ background-color:#fff; color:#000; }
 body.dark-mode{ background-color:#121212; color:#fff; }
 
 #timer{ font-size:48px; margin-bottom:20px; display:inline-block; transition:transform 0.2s; }
-button{ font-size:18px; padding:10px 20px; margin:5px; cursor:pointer; border-radius:8px; border:none; }
+
+button{
+font-size:18px;
+padding:10px 20px;
+cursor:pointer;
+border-radius:8px;
+border:none;
+z-index:10;
+position: relative;
+}
+
+/* ボタン配置 */
+.button-container{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:10px;
+}
+
+.button-row{
+display:flex;
+gap:20px;
+justify-content:center;
+}
+
 #lapCounterDisplay{ font-size:20px; margin-top:10px; }
-#laps{ margin-top:20px; border:1px solid #000; display:inline-block; padding:10px; max-width:280px; max-height:200px; overflow-y:auto; background-color:rgba(255,255,255,0.05); }
+
+#laps{
+margin-top:20px;
+border:1px solid #000;
+display:inline-block;
+padding:10px;
+max-width:280px;
+max-height:200px;
+overflow-y:auto;
+background-color:rgba(255,255,255,0.05);
+position: relative;
+z-index:1;
+pointer-events: none;
+}
+
 #laps ul{ list-style:none; padding:0; margin:0; }
-#laps li{ display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #888; padding:5px 0; opacity:0; transform:translateY(-10px); transition:all 0.3s; }
+
+#laps li{
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:1px solid #888;
+padding:5px 0;
+opacity:0;
+transform:translateY(-10px);
+transition:all 0.3s;
+}
+
 #laps li.show{ opacity:1; transform:translateY(0); }
-#laps .lap-number{ font-weight:bold; flex:1; text-align:center; border-right:1px solid #888; padding-right:10px; }
-#laps .lap-time{ font-family:monospace; flex:1; text-align:center; padding-left:10px; }
 
-#rainbowBtn{ background:linear-gradient(270deg,red,orange,yellow,green,blue,indigo,violet); background-size:1400% 1400%; color:white; animation:rainbowBG 10s ease infinite; }
-@keyframes rainbowBG{ 0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;} }
-.rainbow-theme{ animation:fullRainbowBG 5s linear infinite; }
-@keyframes fullRainbowBG{ 0%{background-color:red;}50%{background-color:blue;}100%{background-color:red;} }
+#laps .lap-number{
+font-weight:bold;
+flex:1;
+text-align:center;
+border-right:1px solid #888;
+padding-right:10px;
+}
 
-.side-gif{ position:fixed; width:120px; height:120px; display:none; z-index:1000; pointer-events:none; }
+#laps .lap-time{
+font-family:monospace;
+flex:1;
+text-align:center;
+padding-left:10px;
+}
+
+#rainbowBtn{
+background:linear-gradient(270deg,red,orange,yellow,green,blue,indigo,violet);
+background-size:1400% 1400%;
+color:white;
+animation:rainbowBG 10s ease infinite;
+}
+
+@keyframes rainbowBG{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+
+.rainbow-theme{
+animation:fullRainbowBG 5s linear infinite;
+}
+
+@keyframes fullRainbowBG{
+0%{background-color:red;}
+50%{background-color:blue;}
+100%{background-color:red;}
+}
+
+.side-gif{
+position:fixed;
+width:120px;
+height:120px;
+display:none;
+z-index:1000;
+pointer-events:none;
+}
+
 #leftGif{ left:0; top:50%; transform:translateY(-50%); }
 #rightGif{ right:10px; top:50%; transform:translateY(-50%); }
-@keyframes swing{ 0%{transform:translate(-50%,-50%) rotate(0deg);}50%{transform:translate(-50%,-50%) rotate(5deg);}100%{transform:translate(-50%,-50%) rotate(0deg);} }
-.side-gif.swing{ animation:swing 0.5s ease-in-out infinite; }
 
-.added-click-gif{ position:absolute; pointer-events:none; z-index:1100; transition:transform 0.1s; }
-</style>
+@keyframes swing{
+0%{transform:translate(-50%,-50%) rotate(0deg);}
+50%{transform:translate(-50%,-50%) rotate(5deg);}
+100%{transform:translate(-50%,-50%) rotate(0deg);}
+}
+
+.added-click-gif{
+position:absolute;
+pointer-events:none;
+z-index:1100;
+transition:transform 0.1s;
+} </style>
+
 </head>
+
 <body class="light-mode">
 
-<img id="leftGif" class="side-gif" src="gifs/left.gif" alt="Left GIF">
-<img id="rightGif" class="side-gif" src="gifs/right.gif" alt="Right GIF">
+<img id="leftGif" class="side-gif" src="gifs/left.gif">
+<img id="rightGif" class="side-gif" src="gifs/right.gif">
 
-<div id="timer">00:00:00</div><br>
-<button id="startStopBtn">Start</button>
-<button id="resetBtn">Reset</button>
-<button id="themeToggleBtn">Toggle Theme</button>
-<button id="rainbowBtn">Rainbow OFF</button><br>
+<div id="timer">00:00:00</div>
+
+<div class="button-container">
+  <div class="button-row">
+    <button id="startStopBtn">Start</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+  <div class="button-row">
+    <button id="themeToggleBtn">Dark OFF</button>
+    <button id="rainbowBtn">Rainbow OFF</button>
+  </div>
+</div>
+
 <div id="lapCounterDisplay">Lap Count: 0</div>
 <div id="laps"><ul id="lapList"></ul></div>
 
-<audio id="rainbowBGM" src="sounds/bgm.mp3" loop></audio>
-<audio id="clickSound" src="sounds/sound1.mp3"></audio>
+<audio id="rainbowBGM" src="sounds/bgm.mp3" loop></audio> <audio id="clickSound" src="sounds/sound1.mp3"></audio>
 
 <script>
 const timer = document.getElementById('timer');
@@ -67,6 +183,13 @@ let startTime=0, elapsedTime=0, timerInterval=null, running=false, rainbowActive
 let laps=[], lapCounter=0;
 let addedGifs=[];
 
+/* 初期状態反映 */
+if(body.classList.contains('dark-mode')){
+  themeToggleBtn.textContent = "Dark ON";
+}else{
+  themeToggleBtn.textContent = "Dark OFF";
+}
+
 function formatTime(ms){
   const totalSeconds=Math.floor(ms/1000);
   const minutes=String(Math.floor(totalSeconds/60)).padStart(2,'0');
@@ -75,8 +198,16 @@ function formatTime(ms){
   return `${minutes}:${seconds}:${centiseconds}`;
 }
 
-function updateTimer(){ if(running){ elapsedTime=Date.now()-startTime; timer.textContent=formatTime(elapsedTime); } }
-function updateLapCounterDisplay(){ lapCounterDisplay.textContent=`Lap Count: ${lapCounter}`; }
+function updateTimer(){
+  if(running){
+    elapsedTime=Date.now()-startTime;
+    timer.textContent=formatTime(elapsedTime);
+  }
+}
+
+function updateLapCounterDisplay(){
+  lapCounterDisplay.textContent=`Lap Count: ${lapCounter}`;
+}
 
 function renderLaps(){
   lapList.innerHTML='';
@@ -89,7 +220,16 @@ function renderLaps(){
   lapList.scrollTop=lapList.scrollHeight;
 }
 
-themeToggleBtn.addEventListener('click',()=>{ body.classList.toggle('dark-mode'); body.classList.toggle('light-mode'); });
+themeToggleBtn.addEventListener('click',()=>{
+  body.classList.toggle('dark-mode');
+  body.classList.toggle('light-mode');
+
+  if(body.classList.contains('dark-mode')){
+    themeToggleBtn.textContent = "Dark ON";
+  }else{
+    themeToggleBtn.textContent = "Dark OFF";
+  }
+});
 
 startStopBtn.addEventListener('click',()=>{
   if(!running){
@@ -102,6 +242,7 @@ startStopBtn.addEventListener('click',()=>{
     elapsedTime=Date.now()-startTime;
     startStopBtn.textContent='Start';
     running=false;
+
     if(elapsedTime>0){
       lapCounter++;
       laps.unshift({number:lapCounter,time:formatTime(elapsedTime)});
@@ -121,6 +262,7 @@ resetBtn.addEventListener('click',()=>{
   laps=[]; lapCounter=0;
   updateLapCounterDisplay();
   renderLaps();
+
   addedGifs.forEach(obj=>clearInterval(obj.sizeInterval));
   addedGifs.forEach(obj=>obj.el.remove());
   addedGifs=[];
@@ -128,6 +270,7 @@ resetBtn.addEventListener('click',()=>{
 
 rainbowBtn.addEventListener('click',()=>{
   rainbowActive=!rainbowActive;
+
   if(rainbowActive){
     body.classList.add('rainbow-theme');
     leftGif.style.display='block';
@@ -135,7 +278,7 @@ rainbowBtn.addEventListener('click',()=>{
     leftGif.classList.add('swing');
     rightGif.classList.add('swing');
     rainbowBtn.textContent="Rainbow ON";
-    rainbowBGM.play().catch(()=>{}); 
+    rainbowBGM.play().catch(()=>{});
   }else{
     body.classList.remove('rainbow-theme');
     leftGif.style.display='none';
@@ -143,47 +286,83 @@ rainbowBtn.addEventListener('click',()=>{
     leftGif.classList.remove('swing');
     rightGif.classList.remove('swing');
     rainbowBtn.textContent="Rainbow OFF";
-    rainbowBGM.pause(); rainbowBGM.currentTime=0;
+    rainbowBGM.pause();
+    rainbowBGM.currentTime=0;
+
     addedGifs.forEach(obj=>clearInterval(obj.sizeInterval));
     addedGifs.forEach(obj=>obj.el.remove());
     addedGifs=[];
   }
 });
 
-document.body.addEventListener('click',(e)=>{
+document.addEventListener('click',(e)=>{
   if(!rainbowActive) return;
   if(e.target.closest('button')) return;
-  clickSound.currentTime=0; clickSound.play().catch(()=>{});
+
+  clickSound.currentTime=0;
+  clickSound.play().catch(()=>{});
+
   const clickGif=document.createElement('img');
   const isSpecial=Math.random()<0.1;
   clickGif.src=isSpecial?'gifs/special.gif':'gifs/left.gif';
   clickGif.classList.add('added-click-gif');
-  let x=e.pageX, y=e.pageY;
-  clickGif.style.left=`${x}px`; clickGif.style.top=`${y}px`;
-  clickGif.style.width='100px'; clickGif.style.height='100px';
-  clickGif.style.transform='translate(-50%,-50%) scaleX(1)';
+
+  let x=e.clientX;
+  let y=e.clientY;
+
+  const gifSize=100;
+  const maxX=window.innerWidth-gifSize/2;
+  const maxY=window.innerHeight-gifSize/2;
+  const minX=gifSize/2;
+  const minY=gifSize/2;
+
+  x=Math.min(Math.max(x,minX),maxX);
+  y=Math.min(Math.max(y,minY),maxY);
+
+  clickGif.style.left=`${x}px`;
+  clickGif.style.top=`${y}px`;
+  clickGif.style.width=`${gifSize}px`;
+  clickGif.style.height=`${gifSize}px`;
+  clickGif.style.transform='translate(-50%,-50%)';
+
   document.body.appendChild(clickGif);
 
-  let size=100;
-  const sizeInterval=setInterval(()=>{ size*=1.05; clickGif.style.width=`${size}px`; clickGif.style.height=`${size}px`; },10000);
+  let size=gifSize;
+  const sizeInterval=setInterval(()=>{
+    size*=1.05;
+    clickGif.style.width=`${size}px`;
+    clickGif.style.height=`${size}px`;
+  },10000);
 
   let vx=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
   let vy=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
   let flippedX=1;
 
   function move(){
-    x+=vx; y+=vy;
-    const w=clickGif.offsetWidth, h=clickGif.offsetHeight;
-    const maxX=window.innerWidth, maxY=window.innerHeight;
-    if(x-w/2<=0||x+w/2>=maxX){ vx*=-1; flippedX*=-1; }
-    if(y-h/2<=0||y+h/2>=maxY){ vy*=-1; }
-    clickGif.style.left=`${x}px`; clickGif.style.top=`${y}px`;
+    x+=vx;
+    y+=vy;
+
+    if(x-size/2<=0||x+size/2>=window.innerWidth){
+      vx*=-1;
+      flippedX*=-1;
+    }
+
+    if(y-size/2<=0||y+size/2>=window.innerHeight){
+      vy*=-1;
+    }
+
+    clickGif.style.left=`${x}px`;
+    clickGif.style.top=`${y}px`;
     clickGif.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
+
     requestAnimationFrame(move);
   }
+
   move();
+
   addedGifs.push({el:clickGif,sizeInterval});
-});
+},true);
 </script>
+
 </body>
 </html>
