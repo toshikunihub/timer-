@@ -71,7 +71,6 @@ button {
 #rainbowBtn{ background:linear-gradient(270deg,red,orange,yellow,green,blue,indigo,violet); background-size:1400% 1400%; color:white; animation:rainbowBG 10s ease infinite; }
 @keyframes rainbowBG{ 0%{background-position:0% 50%;} 50%{background-position:100% 50%;} 100%{background-position:0% 50%;} }
 
-/* body全体に虹色アニメーション */
 body.rainbow-theme {
   animation: fullRainbowBG 5s linear infinite;
   background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
@@ -121,6 +120,7 @@ body.rainbow-theme {
 
 <audio id="rainbowBGM" src="sounds/bgm.mp3" loop></audio>
 <audio id="clickSound" src="sounds/sound1.mp3"></audio>
+<audio id="throwSound" src="sounds/throw.mp3"></audio>
 
 <script>
 const timer = document.getElementById('timer');
@@ -135,6 +135,7 @@ const leftGif = document.getElementById('leftGif');
 const rightGif = document.getElementById('rightGif');
 const rainbowBGM = document.getElementById('rainbowBGM');
 const clickSound = document.getElementById('clickSound');
+const throwSound = document.getElementById('throwSound');
 
 let startTime=0, elapsedTime=0, timerInterval=null, running=false, rainbowActive=false;
 let laps=[], lapCounter=0;
@@ -237,7 +238,6 @@ rainbowBtn.addEventListener('click', ()=>{
   }
 });
 
-// ================== クリック・ドラッグでGIF生成 ==================
 let dragging=false, capturedGifs=[];
 function getEventPos(e){ return e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
 
@@ -349,6 +349,10 @@ function dragMove(e){
 function dragEnd(e){
   if(!dragging) return;
   dragging=false;
+
+  // ここで一度だけ throw.mp3 再生
+  throwSound.currentTime = 0;
+  throwSound.play().catch(()=>{});
 
   capturedGifs.forEach(item=>{
     let vx = item.vx;
