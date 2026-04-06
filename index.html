@@ -2,147 +2,156 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>スマホ対応GIFドラッグ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GIFドラッグ</title>
+
 <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: #f0f0f0;
-    user-select: none;
-    touch-action: none; /* タッチ操作でスクロール抑制 */
-  }
+body{
+  margin:0;
+  overflow:hidden;
+  background:#f0f0f0;
+  touch-action:none;
+  user-select:none;
+}
 
-  .gif {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    cursor: grab;
-    z-index: 1;
-    pointer-events: auto;
-    touch-action: none;
-  }
+button{
+  position:fixed;
+  top:20px;
+  left:20px;
+  z-index:100;
+  padding:12px 20px;
+  font-size:16px;
+}
 
-  button {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 100; /* GIFより前面 */
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-  }
+.gif{
+  position:absolute;
+  width:100px;
+  height:100px;
+  touch-action:none;
+}
 </style>
 </head>
+
 <body>
 
-<button id="addGifBtn">GIF追加</button>
-<div id="gifContainer"></div>
+<button id="addBtn">GIF追加</button>
+<div id="container"></div>
 
 <script>
-const gifContainer = document.getElementById('gifContainer');
-const addGifBtn = document.getElementById('addGifBtn');
 
-let gifCount = 0;
-let dragging = {}; // 複数GIF同時ドラッグ管理
+const container = document.getElementById("container")
+const addBtn = document.getElementById("addBtn")
 
-// タッチID対応でドラッグ開始
-function startDrag(e, gif) {
-  e.preventDefault();
-  for (let touch of e.changedTouches) {
-    dragging[touch.identifier] = {
-      element: gif,
-      startX: touch.clientX,
-      startY: touch.clientY,
-      origX: parseFloat(gif.style.left),
-      origY: parseFloat(gif.style.top),
-      lastX: touch.clientX,
-      lastY: touch.clientY,
-      lastTime: performance.now(),
-      velocityX: 0,
-      velocityY: 0
-    };
-  }
+let active = null
+
+function addGif(){
+
+  const gif = document.createElement("img")
+
+  gif.src="https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif"
+
+  gif.className="gif"
+
+  gif.style.left = Math.random()*(window.innerWidth-100)+"px"
+  gif.style.top  = Math.random()*(window.innerHeight-100)+"px"
+
+  container.appendChild(gif)
+
+  gif.addEventListener("pointerdown",startDrag)
+
 }
 
-// タッチ移動
-function onDrag(e) {
-  e.preventDefault();
-  const now = performance.now();
-  for (let touch of e.changedTouches) {
-    const data = dragging[touch.identifier];
-    if (!data) continue;
-    const dx = touch.clientX - data.startX;
-    const dy = touch.clientY - data.startY;
-    data.element.style.left = data.origX + dx + 'px';
-    data.element.style.top = data.origY + dy + 'px';
+function startDrag(e){
 
-    const dt = now - data.lastTime;
-    if (dt > 0) {
-      data.velocityX = (touch.clientX - data.lastX) / dt * 16;
-      data.velocityY = (touch.clientY - data.lastY) / dt * 16;
-      data.lastX = touch.clientX;
-      data.lastY = touch.clientY;
-      data.lastTime = now;
+  active={
+    el:e.target,
+    startX:e.clientX,
+    startY:e.clientY,
+    origX:parseFloat(e.target.style.left),
+    origY:parseFloat(e.target.style.top),
+    vx:0,
+    vy:0,
+    lastX:e.clientX,
+    lastY:e.clientY,
+    lastT:performance.now()
+  }
+
+}
+
+function moveDrag(e){
+
+  if(!active) return
+
+  const dx=e.clientX-active.startX
+  const dy=e.clientY-active.startY
+
+  active.el.style.left=active.origX+dx+"px"
+  active.el.style.top=active.origY+dy+"px"
+
+  const now=performance.now()
+  const dt=now-active.lastT
+
+  if(dt>0){
+    active.vx=(e.clientX-active.lastX)/dt*16
+    active.vy=(e.clientY-active.lastY)/dt*16
+  }
+
+  active.lastX=e.clientX
+  active.lastY=e.clientY
+  active.lastT=now
+
+}
+
+function endDrag(){
+
+  if(!active) return
+
+  let el=active.el
+  let vx=active.vx*5
+  let vy=active.vy*5
+
+  function animate(){
+
+    vx*=0.95
+    vy*=0.95
+
+    let x=parseFloat(el.style.left)+vx
+    let y=parseFloat(el.style.top)+vy
+
+    if(x<0){x=0;vx*=-0.5}
+    if(y<0){y=0;vy*=-0.5}
+
+    if(x>window.innerWidth-100){
+      x=window.innerWidth-100
+      vx*=-0.5
     }
-  }
-}
 
-// タッチ終了（慣性飛ばし）
-function endDrag(e) {
-  e.preventDefault();
-  for (let touch of e.changedTouches) {
-    const data = dragging[touch.identifier];
-    if (!data) continue;
-    const gifEl = data.element;
-
-    let vx = data.velocityX * 5; // 飛ぶ倍率
-    let vy = data.velocityY * 5;
-
-    function animate() {
-      vx *= 0.95; // 摩擦
-      vy *= 0.95;
-      let left = parseFloat(gifEl.style.left) + vx;
-      let top = parseFloat(gifEl.style.top) + vy;
-
-      // 画面端バウンド
-      if (left < 0) { left = 0; vx = -vx * 0.5; }
-      if (top < 0) { top = 0; vy = -vy * 0.5; }
-      if (left > window.innerWidth - 100) { left = window.innerWidth - 100; vx = -vx * 0.5; }
-      if (top > window.innerHeight - 100) { top = window.innerHeight - 100; vy = -vy * 0.5; }
-
-      gifEl.style.left = left + 'px';
-      gifEl.style.top = top + 'px';
-
-      if (Math.abs(vx) > 0.5 || Math.abs(vy) > 0.5) {
-        requestAnimationFrame(animate);
-      }
+    if(y>window.innerHeight-100){
+      y=window.innerHeight-100
+      vy*=-0.5
     }
-    animate();
-    delete dragging[touch.identifier];
+
+    el.style.left=x+"px"
+    el.style.top=y+"px"
+
+    if(Math.abs(vx)>0.5 || Math.abs(vy)>0.5){
+      requestAnimationFrame(animate)
+    }
+
   }
+
+  animate()
+
+  active=null
+
 }
 
-// GIF追加
-function addGif() {
-  const gif = document.createElement('img');
-  gif.src = 'https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif';
-  gif.className = 'gif';
-  gif.style.left = Math.random() * (window.innerWidth - 100) + 'px';
-  gif.style.top = Math.random() * (window.innerHeight - 100) + 'px';
-  gif.dataset.id = gifCount++;
+document.addEventListener("pointermove",moveDrag)
+document.addEventListener("pointerup",endDrag)
+document.addEventListener("pointercancel",endDrag)
 
-  // タッチイベント追加
-  gif.addEventListener('touchstart', (e) => startDrag(e, gif), { passive: false });
+addBtn.onclick=addGif
 
-  gifContainer.appendChild(gif);
-}
-
-// グローバルにタッチ移動・終了を監視
-document.addEventListener('touchmove', onDrag, { passive: false });
-document.addEventListener('touchend', endDrag, { passive: false });
-document.addEventListener('touchcancel', endDrag, { passive: false });
-
-addGifBtn.addEventListener('click', addGif);
 </script>
 
 </body>
