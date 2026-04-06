@@ -14,299 +14,226 @@ body {
   position: relative;
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
-  touch-action: none; /* 追加: タッチのデフォルト操作無効 */
+  touch-action: none;
 }
-body.light-mode { background-color:#fff; color:#000; }
-body.dark-mode { background-color:#121212; color:#fff; }
+#timer { font-size:48px; margin-bottom:20px; }
 
-#timer { font-size:48px; margin-bottom:20px; display:inline-block; transition:transform 0.2s; }
-
-.button-container {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:10px;
-}
-.button-row {
-  display:flex;
-  gap:20px;
-  justify-content:center;
-}
 button {
   font-size:18px;
   padding:10px 20px;
-  cursor:pointer;
+  margin:5px;
   border-radius:8px;
   border:none;
-  min-width:120px;
-  min-height:40px;
 }
 
-#lapCounterDisplay{ font-size:20px; margin-top:10px; }
-#laps{ margin-top:20px; border:1px solid #000; display:inline-block; padding:10px; max-width:280px; max-height:200px; overflow-y:auto; background-color:rgba(255,255,255,0.05); position: relative; z-index:1; pointer-events: none; }
-#laps ul{ list-style:none; padding:0; margin:0; }
-#laps li{ display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #888; padding:5px 0; opacity:0; transform:translateY(-10px); transition:all 0.3s; }
-#laps li.show{ opacity:1; transform:translateY(0); }
-#laps .lap-number{ font-weight:bold; flex:1; text-align:center; border-right:1px solid #888; padding-right:10px; }
-#laps .lap-time{ font-family:monospace; flex:1; text-align:center; padding-left:10px; }
-
-#rainbowBtn{ background:linear-gradient(270deg,red,orange,yellow,green,blue,indigo,violet); background-size:1400% 1400%; color:white; animation:rainbowBG 10s ease infinite; }
-@keyframes rainbowBG{ 0%{background-position:0% 50%;} 50%{background-position:100% 50%;} 100%{background-position:0% 50%;} }
-.rainbow-theme{ animation:fullRainbowBG 5s linear infinite; }
-@keyframes fullRainbowBG{ 0%{background-color:red;} 50%{background-color:blue;} 100%{background-color:red;} }
-
-.side-gif{ position:fixed; width:120px; height:120px; display:none; z-index:1000; pointer-events:none; }
+.side-gif{
+  position:fixed;
+  width:120px;
+  display:none;
+}
 #leftGif{ left:0; top:50%; transform:translateY(-50%); }
 #rightGif{ right:10px; top:50%; transform:translateY(-50%); }
 
-@keyframes swing{ 0%{transform:translate(-50%,-50%) rotate(0deg);} 50%{transform:translate(-50%,-50%) rotate(5deg);} 100%{transform:translate(-50%,-50%) rotate(0deg);} }
-.added-click-gif{ position:absolute; pointer-events:auto; z-index:1100; transition:transform 0.1s; }
+.added-click-gif{
+  position:absolute;
+  transform:translate(-50%,-50%);
+}
 </style>
 </head>
-<body class="light-mode">
+<body>
 
 <img id="leftGif" class="side-gif" src="gifs/left.gif">
 <img id="rightGif" class="side-gif" src="gifs/right.gif">
 
-<div id="timer">00:00:00</div>
+<div id="timer">00:00</div>
 
-<div class="button-container">
-  <div class="button-row">
-    <button id="startStopBtn">Start</button>
-    <button id="resetBtn">Reset</button>
-  </div>
-  <div class="button-row">
-    <button id="themeToggleBtn">Dark OFF</button>
-    <button id="rainbowBtn">Rainbow OFF</button>
-  </div>
-</div>
-
-<div id="lapCounterDisplay">Lap Count: 0</div>
-<div id="laps"><ul id="lapList"></ul></div>
-
-<audio id="rainbowBGM" src="sounds/bgm.mp3" loop></audio>
-<audio id="clickSound" src="sounds/sound1.mp3"></audio>
+<button id="startStopBtn">Start</button>
+<button id="resetBtn">Reset</button>
+<button id="rainbowBtn">Rainbow OFF</button>
 
 <script>
 const timer = document.getElementById('timer');
 const startStopBtn = document.getElementById('startStopBtn');
 const resetBtn = document.getElementById('resetBtn');
-const lapList = document.getElementById('lapList');
-const lapCounterDisplay = document.getElementById('lapCounterDisplay');
-const themeToggleBtn = document.getElementById('themeToggleBtn');
 const rainbowBtn = document.getElementById('rainbowBtn');
-const body = document.body;
 const leftGif = document.getElementById('leftGif');
 const rightGif = document.getElementById('rightGif');
-const rainbowBGM = document.getElementById('rainbowBGM');
-const clickSound = document.getElementById('clickSound');
 
-let startTime=0, elapsedTime=0, timerInterval=null, running=false, rainbowActive=false;
-let laps=[], lapCounter=0;
+let running=false;
+let startTime=0;
+let elapsedTime=0;
+let timerInterval;
+
+let rainbowActive=false;
 let addedGifs=[];
 
-themeToggleBtn.textContent = body.classList.contains('dark-mode') ? "Dark ON" : "Dark OFF";
-
+// ===== タイマー =====
 function formatTime(ms){
-  const totalSeconds = Math.floor(ms/1000);
-  const minutes = String(Math.floor(totalSeconds/60)).padStart(2,'0');
-  const seconds = String(totalSeconds%60).padStart(2,'0');
-  const centiseconds = String(Math.floor((ms%1000)/10)).padStart(2,'0');
-  return `${minutes}:${seconds}:${centiseconds}`;
+  const s=Math.floor(ms/1000);
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
 }
-
 function updateTimer(){
-  if(running){ 
-    elapsedTime = Date.now() - startTime;
-    timer.textContent = formatTime(elapsedTime);
+  if(running){
+    elapsedTime=Date.now()-startTime;
+    timer.textContent=formatTime(elapsedTime);
   }
 }
-
-function updateLapCounterDisplay(){
-  lapCounterDisplay.textContent = `Lap Count: ${lapCounter}`;
-}
-
-function renderLaps(){
-  lapList.innerHTML='';
-  laps.forEach(lap=>{
-    const li=document.createElement('li');
-    li.innerHTML = `<span class="lap-number">Lap ${lap.number}</span><span class="lap-time">${lap.time}</span>`;
-    lapList.appendChild(li);
-    setTimeout(()=>li.classList.add('show'),50);
-  });
-  lapList.scrollTop = lapList.scrollHeight;
-}
-
-themeToggleBtn.addEventListener('click', ()=>{
-  body.classList.toggle('dark-mode');
-  body.classList.toggle('light-mode');
-  themeToggleBtn.textContent = body.classList.contains('dark-mode') ? "Dark ON" : "Dark OFF";
-});
-
-startStopBtn.addEventListener('click', ()=>{
+startStopBtn.onclick=()=>{
   if(!running){
-    startTime = Date.now() - elapsedTime;
-    timerInterval = setInterval(updateTimer, 10);
-    startStopBtn.textContent='Stop';
+    startTime=Date.now()-elapsedTime;
+    timerInterval=setInterval(updateTimer,10);
     running=true;
-  } else {
+  }else{
     clearInterval(timerInterval);
-    elapsedTime = Date.now() - startTime;
-    startStopBtn.textContent='Start';
     running=false;
-    if(elapsedTime>0){
-      lapCounter++;
-      laps.unshift({number:lapCounter,time:formatTime(elapsedTime)});
-      if(laps.length>10) laps.pop();
-      renderLaps();
-      updateLapCounterDisplay();
-    }
   }
-});
-
-resetBtn.addEventListener('click', ()=>{
+};
+resetBtn.onclick=()=>{
   clearInterval(timerInterval);
-  elapsedTime=0; timer.textContent="00:00:00";
-  startStopBtn.textContent='Start';
-  running=false;
-  laps=[]; lapCounter=0;
-  updateLapCounterDisplay();
-  renderLaps();
-  addedGifs.forEach(obj=>clearInterval(obj.sizeInterval));
-  addedGifs.forEach(obj=>cancelAnimationFrame(obj.rafId));
-  addedGifs.forEach(obj=>obj.el.remove());
-  addedGifs=[];
-});
+  elapsedTime=0;
+  timer.textContent="00:00";
+};
 
-rainbowBtn.addEventListener('click', ()=>{
+// ===== レインボー =====
+rainbowBtn.onclick=()=>{
   rainbowActive=!rainbowActive;
-  if(rainbowActive){
-    body.classList.add('rainbow-theme');
-    leftGif.style.display='block';
-    rightGif.style.display='block';
-    rainbowBtn.textContent="Rainbow ON";
-    rainbowBGM.play().catch(()=>{});
-  } else {
-    body.classList.remove('rainbow-theme');
-    leftGif.style.display='none';
-    rightGif.style.display='none';
-    rainbowBtn.textContent="Rainbow OFF";
-    rainbowBGM.pause();
-    rainbowBGM.currentTime=0;
-    addedGifs.forEach(obj=>clearInterval(obj.sizeInterval));
-    addedGifs.forEach(obj=>cancelAnimationFrame(obj.rafId));
-    addedGifs.forEach(obj=>obj.el.remove());
-    addedGifs=[];
-  }
-});
+  leftGif.style.display=rainbowActive?'block':'none';
+  rightGif.style.display=rainbowActive?'block':'none';
+};
 
-// ================== クリックでGIF生成 ==================
+// ===== GIF生成（修正済み）=====
 document.addEventListener('pointerdown', (e)=>{
   if(!rainbowActive) return;
   if(e.target.closest('button')) return;
-  clickSound.currentTime=0; clickSound.play().catch(()=>{});
 
-  const clickGif=document.createElement('img');
-  const isSpecial = Math.random()<0.1;
-  clickGif.src = isSpecial ? 'gifs/special.gif' : 'gifs/left.gif';
-  clickGif.classList.add('added-click-gif');
+  const pos={x:e.clientX,y:e.clientY};
 
-  let x=e.clientX, y=e.clientY, gifSize=100;
-  x = Math.min(Math.max(x, gifSize/2), window.innerWidth-gifSize/2);
-  y = Math.min(Math.max(y, gifSize/2), window.innerHeight-gifSize/2);
-  clickGif.style.left=`${x}px`;
-  clickGif.style.top=`${y}px`;
-  clickGif.style.width=`${gifSize}px`;
-  clickGif.style.height=`${gifSize}px`;
-  clickGif.style.transform='translate(-50%,-50%)';
-  document.body.appendChild(clickGif);
+  // ⭐既存GIFに触れてたら生成しない
+  let touching=false;
+  addedGifs.forEach(gif=>{
+    const rect=gif.el.getBoundingClientRect();
+    if(pos.x>=rect.left && pos.x<=rect.right &&
+       pos.y>=rect.top && pos.y<=rect.bottom){
+      touching=true;
+    }
+  });
+  if(touching) return;
 
-  if(isSpecial) new Audio('sounds/sound2.mp3').play().catch(()=>{});
+  const gif=document.createElement('img');
+  gif.src='gifs/left.gif';
+  gif.classList.add('added-click-gif');
 
-  let size = gifSize;
-  const sizeInterval = setInterval(()=>{
-    size *= 1.05;
-    clickGif.style.width = `${size}px`;
-    clickGif.style.height = `${size}px`;
-  },10000);
+  gif.style.left=pos.x+'px';
+  gif.style.top=pos.y+'px';
+  gif.style.width='100px';
+
+  document.body.appendChild(gif);
 
   let vx=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
   let vy=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
-  let flippedX=1;
 
   function move(){
-    let x=parseFloat(clickGif.style.left);
-    let y=parseFloat(clickGif.style.top);
-    let size=parseFloat(clickGif.style.width);
+    let x=parseFloat(gif.style.left);
+    let y=parseFloat(gif.style.top);
+    let size=parseFloat(gif.style.width);
+
     x+=vx; y+=vy;
-    if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
-    if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
-    clickGif.style.left=`${x}px`;
-    clickGif.style.top=`${y}px`;
-    clickGif.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
-    clickGif.rafId=requestAnimationFrame(move);
+
+    if(x-size/2<=0||x+size/2>=window.innerWidth) vx*=-1;
+    if(y-size/2<=0||y+size/2>=window.innerHeight) vy*=-1;
+
+    gif.style.left=x+'px';
+    gif.style.top=y+'px';
+
+    gif.rafId=requestAnimationFrame(move);
   }
   move();
 
-  addedGifs.push({el:clickGif, sizeInterval, rafId:null, vx, vy});
+  addedGifs.push({el:gif,rafId:null});
 }, true);
 
-// ================== ドラッグ対応 ==================
-let dragging=false, capturedGifs=[];
+// ===== ドラッグ捕獲 =====
+let dragging=false;
+let capturedGifs=[];
 
-// タッチ／マウス共通に対応
-function getEventPos(e){ return e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
+function getPos(e){
+  return e.touches
+    ? {x:e.touches[0].clientX,y:e.touches[0].clientY}
+    : {x:e.clientX,y:e.clientY};
+}
 
-function dragStart(e){
-  const pos = getEventPos(e);
-  dragging=true; capturedGifs=[];
+// ⭐移動中も捕まえる
+function checkHit(pos){
   addedGifs.forEach(gif=>{
-    const rect = gif.el.getBoundingClientRect();
-    if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){
+    if(capturedGifs.find(g=>g.gif===gif)) return;
+
+    const rect=gif.el.getBoundingClientRect();
+    if(pos.x>=rect.left && pos.x<=rect.right &&
+       pos.y>=rect.top && pos.y<=rect.bottom){
+
       cancelAnimationFrame(gif.rafId);
-      capturedGifs.push({gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y});
+
+      capturedGifs.push({
+        gif,
+        offsetX:parseFloat(gif.el.style.left)-pos.x,
+        offsetY:parseFloat(gif.el.style.top)-pos.y
+      });
     }
   });
+}
+
+function dragStart(e){
+  dragging=true;
+  capturedGifs=[];
+  checkHit(getPos(e));
 }
 
 function dragMove(e){
   if(!dragging) return;
-  const pos = getEventPos(e);
-  e.preventDefault(); // ← 追加: スクロール防止
+  const pos=getPos(e);
+  e.preventDefault();
+
+  checkHit(pos);
+
   capturedGifs.forEach(item=>{
-    item.gif.el.style.left = `${pos.x + item.offsetX}px`;
-    item.gif.el.style.top = `${pos.y + item.offsetY}px`;
+    item.gif.el.style.left=(pos.x+item.offsetX)+'px';
+    item.gif.el.style.top=(pos.y+item.offsetY)+'px';
   });
 }
 
-function dragEnd(e){
-  if(!dragging) return;
+function dragEnd(){
   dragging=false;
+
   capturedGifs.forEach(item=>{
     let vx=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
     let vy=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
-    let flippedX=1;
+
     function move(){
       let x=parseFloat(item.gif.el.style.left);
       let y=parseFloat(item.gif.el.style.top);
       let size=parseFloat(item.gif.el.style.width);
+
       x+=vx; y+=vy;
-      if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
-      if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
-      item.gif.el.style.left=`${x}px`;
-      item.gif.el.style.top=`${y}px`;
-      item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
+
+      if(x-size/2<=0||x+size/2>=window.innerWidth) vx*=-1;
+      if(y-size/2<=0||y+size/2>=window.innerHeight) vy*=-1;
+
+      item.gif.el.style.left=x+'px';
+      item.gif.el.style.top=y+'px';
+
       item.gif.rafId=requestAnimationFrame(move);
     }
     move();
   });
+
   capturedGifs=[];
 }
 
-// イベント登録
-['mousedown','touchstart'].forEach(evt=>document.addEventListener(evt, dragStart));
-['mousemove','touchmove'].forEach(evt=>document.addEventListener(evt, dragMove, {passive:false}));
-['mouseup','touchend'].forEach(evt=>document.addEventListener(evt, dragEnd));
+// イベント
+['mousedown','touchstart'].forEach(e=>document.addEventListener(e,dragStart));
+['mousemove','touchmove'].forEach(e=>document.addEventListener(e,dragMove,{passive:false}));
+['mouseup','touchend'].forEach(e=>document.addEventListener(e,dragEnd));
+
 </script>
 
 </body>
