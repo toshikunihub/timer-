@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>タイマー</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
 <style>
 body {
   font-family: Arial,sans-serif;
@@ -22,47 +21,12 @@ body.dark-mode { background-color:#121212; color:#fff; }
 
 #timer { font-size:48px; margin-bottom:20px; display:inline-block; transition:transform 0.2s; }
 
-.button-container {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:10px;
-  position:relative;
-  z-index:2000; /* GIFより前面 */
-}
-.button-row {
-  display:flex;
-  gap:20px;
-  justify-content:center;
-}
-
-button {
-  font-size:18px;
-  padding:10px 20px;
-  cursor:pointer;
-  border-radius:8px;
-  border:none;
-  min-width:120px;
-  min-height:40px;
-  position:relative;
-  z-index:2001; /* GIFより前面 */
-}
+.button-container { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.button-row { display:flex; gap:20px; justify-content:center; }
+button { font-size:18px; padding:10px 20px; cursor:pointer; border-radius:8px; border:none; position:relative; z-index:3000; }
 
 #lapCounterDisplay{ font-size:20px; margin-top:10px; }
-
-#laps{
-  margin-top:20px;
-  border:1px solid #000;
-  display:inline-block;
-  padding:10px;
-  max-width:280px;
-  max-height:200px;
-  overflow-y:auto;
-  background-color:rgba(255,255,255,0.05);
-  position: relative;
-  z-index:1;
-  pointer-events: none;
-}
+#laps{ margin-top:20px; border:1px solid #000; display:inline-block; padding:10px; max-width:280px; max-height:200px; overflow-y:auto; background-color:rgba(255,255,255,0.05); position: relative; z-index:1; pointer-events: none; }
 #laps ul{ list-style:none; padding:0; margin:0; }
 #laps li{ display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #888; padding:5px 0; opacity:0; transform:translateY(-10px); transition:all 0.3s; }
 #laps li.show{ opacity:1; transform:translateY(0); }
@@ -71,22 +35,17 @@ button {
 
 #rainbowBtn{ background:linear-gradient(270deg,red,orange,yellow,green,blue,indigo,violet); background-size:1400% 1400%; color:white; animation:rainbowBG 10s ease infinite; }
 @keyframes rainbowBG{ 0%{background-position:0% 50%;} 50%{background-position:100% 50%;} 100%{background-position:0% 50%;} }
+
 .rainbow-theme{ animation:fullRainbowBG 5s linear infinite; }
 @keyframes fullRainbowBG{ 0%{background-color:red;} 50%{background-color:blue;} 100%{background-color:red;} }
 
-.side-gif{
-  position:fixed;
-  width:120px;
-  height:120px;
-  display:none;
-  z-index:1000;
-  pointer-events:none;
-}
+.side-gif{ position:fixed; width:120px; height:120px; display:none; z-index:1000; pointer-events:none; }
 #leftGif{ left:0; top:50%; transform:translateY(-50%); }
 #rightGif{ right:10px; top:50%; transform:translateY(-50%); }
 
-.added-click-gif{ position:absolute; pointer-events:auto; z-index:1100; transition:transform 0.1s; }
+@keyframes swing{ 0%{transform:translate(-50%,-50%) rotate(0deg);} 50%{transform:translate(-50%,-50%) rotate(5deg);} 100%{transform:translate(-50%,-50%) rotate(0deg);} }
 
+.added-click-gif{ position:absolute; pointer-events:auto; z-index:1100; transition:transform 0.1s; }
 </style>
 </head>
 
@@ -112,6 +71,7 @@ button {
 
 <audio id="rainbowBGM" src="sounds/bgm.mp3" loop></audio>
 <audio id="clickSound" src="sounds/sound1.mp3"></audio>
+<audio id="throwSound" src="sounds/throw.mp3"></audio>
 
 <script>
 const timer = document.getElementById('timer');
@@ -126,8 +86,10 @@ const leftGif = document.getElementById('leftGif');
 const rightGif = document.getElementById('rightGif');
 const rainbowBGM = document.getElementById('rainbowBGM');
 const clickSound = document.getElementById('clickSound');
+const throwSound = document.getElementById('throwSound');
 
-let startTime=0, elapsedTime=0, timerInterval=null, running=false, rainbowActive=false;
+let startTime=0, elapsedTime=0, timerInterval=null, running=false;
+let rainbowActive=false;
 let laps=[], lapCounter=0;
 let addedGifs=[];
 
@@ -229,11 +191,8 @@ rainbowBtn.addEventListener('click', ()=>{
 });
 
 // ================== クリックでGIF生成 ==================
-let dragging=false, capturedGifs=[];
-function getEventPos(e){ return e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
-
 document.addEventListener('pointerdown', (e)=>{
-  if(!rainbowActive || dragging) return; // ドラッグ中は生成しない
+  if(!rainbowActive) return;
   if(e.target.closest('button')) return;
 
   clickSound.currentTime=0;
@@ -253,6 +212,7 @@ document.addEventListener('pointerdown', (e)=>{
   clickGif.style.width=`${gifSize}px`;
   clickGif.style.height=`${gifSize}px`;
   clickGif.style.transform='translate(-50%,-50%)';
+
   document.body.appendChild(clickGif);
 
   if(isSpecial) new Audio('sounds/sound2.mp3').play().catch(()=>{});
@@ -286,6 +246,10 @@ document.addEventListener('pointerdown', (e)=>{
 }, true);
 
 // ================== ドラッグ対応 ==================
+let dragging=false, capturedGifs=[];
+
+function getEventPos(e){ return e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
+
 function dragStart(e){
   const pos = getEventPos(e);
   dragging=true;
@@ -294,10 +258,8 @@ function dragStart(e){
   addedGifs.forEach(gif=>{
     const rect = gif.el.getBoundingClientRect();
     if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){
-      if(!capturedGifs.find(item=>item.gif===gif)){
-        cancelAnimationFrame(gif.rafId);
-        capturedGifs.push({gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y});
-      }
+      cancelAnimationFrame(gif.rafId);
+      capturedGifs.push({gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y});
     }
   });
 }
@@ -306,27 +268,15 @@ function dragMove(e){
   if(!dragging) return;
   const pos = getEventPos(e);
   e.preventDefault();
-
-  addedGifs.forEach(gif=>{
-    const rect = gif.el.getBoundingClientRect();
-    if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){
-      if(!capturedGifs.find(item=>item.gif===gif)){
-        cancelAnimationFrame(gif.rafId);
-        capturedGifs.push({gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y});
-      }
-    }
-  });
-
   capturedGifs.forEach(item=>{
     item.gif.el.style.left = `${pos.x + item.offsetX}px`;
-    item.gif.el.style.top  = `${pos.y + item.offsetY}px`;
+    item.gif.el.style.top = `${pos.y + item.offsetY}px`;
   });
 }
 
 function dragEnd(e){
   if(!dragging) return;
   dragging=false;
-
   capturedGifs.forEach(item=>{
     let vx=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
     let vy=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
@@ -345,6 +295,8 @@ function dragEnd(e){
       item.gif.rafId=requestAnimationFrame(move);
     }
     move();
+    throwSound.currentTime=0;
+    throwSound.play().catch(()=>{});
   });
   capturedGifs=[];
 }
@@ -352,7 +304,6 @@ function dragEnd(e){
 ['mousedown','touchstart'].forEach(evt=>document.addEventListener(evt, dragStart));
 ['mousemove','touchmove'].forEach(evt=>document.addEventListener(evt, dragMove, {passive:false}));
 ['mouseup','touchend'].forEach(evt=>document.addEventListener(evt, dragEnd));
-
 </script>
 </body>
 </html>
