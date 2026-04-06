@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>スマホ対応GIFドラッグ（複数捕捉版）</title>
+<title>スマホ対応GIFドラッグ</title>
 <style>
   body {
     margin: 0;
     overflow: hidden;
     background: #f0f0f0;
     user-select: none;
-    touch-action: none;
+    touch-action: none; /* スクロール抑制 */
   }
 
   .gif {
@@ -26,7 +26,7 @@
     position: fixed;
     top: 20px;
     left: 20px;
-    z-index: 100; 
+    z-index: 100; /* GIFより前面 */
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
@@ -43,7 +43,7 @@ const gifContainer = document.getElementById('gifContainer');
 const addGifBtn = document.getElementById('addGifBtn');
 
 let gifCount = 0;
-let dragging = {}; // タッチID+GIFID -> データ
+let dragging = {}; // タッチID + GIFID で複数管理
 
 // 指定座標に重なるGIFを取得
 function getGIFsAtPoint(x, y) {
@@ -90,7 +90,7 @@ function onDrag(e) {
     const x = touch.clientX;
     const y = touch.clientY;
 
-    // 指下にあるGIFをすべて捕まえる
+    // 指下のGIFを捕まえる
     const gifs = getGIFsAtPoint(x, y);
     for (let gif of gifs) {
       const key = touch.identifier + '_' + gif.dataset.id;
@@ -175,7 +175,6 @@ function addGif() {
   gifContainer.appendChild(gif);
 }
 
-// グローバルイベント登録
 document.addEventListener('touchstart', startDrag, {passive:false});
 document.addEventListener('touchmove', onDrag, {passive:false});
 document.addEventListener('touchend', endDrag, {passive:false});
