@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>スマホ対応GIFドラッグ（範囲捕捉）</title>
+<title>スマホ対応GIFドラッグ（複数捕捉版）</title>
 <style>
   body {
     margin: 0;
@@ -26,7 +26,7 @@
     position: fixed;
     top: 20px;
     left: 20px;
-    z-index: 100;
+    z-index: 100; 
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
@@ -43,12 +43,11 @@ const gifContainer = document.getElementById('gifContainer');
 const addGifBtn = document.getElementById('addGifBtn');
 
 let gifCount = 0;
-let dragging = {}; // 複数GIF同時ドラッグ管理
+let dragging = {}; // タッチID+GIFID -> データ
 
 // 指定座標に重なるGIFを取得
 function getGIFsAtPoint(x, y) {
-  const gifs = document.querySelectorAll('.gif');
-  return Array.from(gifs).filter(gif => {
+  return Array.from(document.querySelectorAll('.gif')).filter(gif => {
     const rect = gif.getBoundingClientRect();
     return x >= rect.left && x <= rect.right &&
            y >= rect.top && y <= rect.bottom;
@@ -58,39 +57,10 @@ function getGIFsAtPoint(x, y) {
 // タッチ開始
 function startDrag(e) {
   e.preventDefault();
-  for (let touch of e.changedTouches) {
-    const x = touch.clientX;
-    const y = touch.clientY;
-
-    const gifs = getGIFsAtPoint(x, y);
-    for (let gif of gifs) {
-      if (!dragging[touch.identifier + '_' + gif.dataset.id]) {
-        dragging[touch.identifier + '_' + gif.dataset.id] = {
-          element: gif,
-          startX: x,
-          startY: y,
-          origX: parseFloat(gif.style.left),
-          origY: parseFloat(gif.style.top),
-          lastX: x,
-          lastY: y,
-          lastTime: performance.now(),
-          velocityX: 0,
-          velocityY: 0
-        };
-      }
-    }
-  }
-}
-
-// タッチ移動
-function onDrag(e) {
-  e.preventDefault();
   const now = performance.now();
   for (let touch of e.changedTouches) {
     const x = touch.clientX;
     const y = touch.clientY;
-
-    // 指の下にあるすべてのGIFを捕まえる
     const gifs = getGIFsAtPoint(x, y);
     for (let gif of gifs) {
       const key = touch.identifier + '_' + gif.dataset.id;
@@ -110,22 +80,53 @@ function onDrag(e) {
       }
     }
   }
+}
 
-  // 移動処理
-  for (let key in dragging) {
-    const data = dragging[key];
-    const dx = x - data.startX;
-    const dy = y - data.startY;
-    data.element.style.left = data.origX + dx + 'px';
-    data.element.style.top = data.origY + dy + 'px';
+// タッチ移動
+function onDrag(e) {
+  e.preventDefault();
+  const now = performance.now();
+  for (let touch of e.changedTouches) {
+    const x = touch.clientX;
+    const y = touch.clientY;
 
-    const dt = now - data.lastTime;
-    if (dt > 0) {
-      data.velocityX = (x - data.lastX) / dt * 16;
-      data.velocityY = (y - data.lastY) / dt * 16;
-      data.lastX = x;
-      data.lastY = y;
-      data.lastTime = now;
+    // 指下にあるGIFをすべて捕まえる
+    const gifs = getGIFsAtPoint(x, y);
+    for (let gif of gifs) {
+      const key = touch.identifier + '_' + gif.dataset.id;
+      if (!dragging[key]) {
+        dragging[key] = {
+          element: gif,
+          startX: x,
+          startY: y,
+          origX: parseFloat(gif.style.left),
+          origY: parseFloat(gif.style.top),
+          lastX: x,
+          lastY: y,
+          lastTime: now,
+          velocityX: 0,
+          velocityY: 0
+        };
+      }
+    }
+
+    // すでにドラッグ中のGIFを移動
+    for (let key in dragging) {
+      if (!key.startsWith(touch.identifier + '_')) continue;
+      const data = dragging[key];
+      const dx = x - data.startX;
+      const dy = y - data.startY;
+      data.element.style.left = data.origX + dx + 'px';
+      data.element.style.top = data.origY + dy + 'px';
+
+      const dt = now - data.lastTime;
+      if (dt > 0) {
+        data.velocityX = (x - data.lastX) / dt * 16;
+        data.velocityY = (y - data.lastY) / dt * 16;
+        data.lastX = x;
+        data.lastY = y;
+        data.lastTime = now;
+      }
     }
   }
 }
@@ -138,7 +139,6 @@ function endDrag(e) {
     for (let key of keys) {
       const data = dragging[key];
       const gifEl = data.element;
-
       let vx = data.velocityX * 5;
       let vy = data.velocityY * 5;
 
@@ -156,12 +156,9 @@ function endDrag(e) {
         gifEl.style.left = left + 'px';
         gifEl.style.top = top + 'px';
 
-        if (Math.abs(vx) > 0.5 || Math.abs(vy) > 0.5) {
-          requestAnimationFrame(animate);
-        }
+        if (Math.abs(vx) > 0.5 || Math.abs(vy) > 0.5) requestAnimationFrame(animate);
       }
       animate();
-
       delete dragging[key];
     }
   }
@@ -178,7 +175,7 @@ function addGif() {
   gifContainer.appendChild(gif);
 }
 
-// イベント登録
+// グローバルイベント登録
 document.addEventListener('touchstart', startDrag, {passive:false});
 document.addEventListener('touchmove', onDrag, {passive:false});
 document.addEventListener('touchend', endDrag, {passive:false});
