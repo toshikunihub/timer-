@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>タイマー</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
 <style>
 body {
   font-family: Arial,sans-serif;
@@ -16,48 +17,90 @@ body {
   overflow-x: hidden;
   touch-action: none;
 }
+body.light-mode { background-color:#fff; color:#000; }
+body.dark-mode { background-color:#121212; color:#fff; }
+
 #timer { font-size:48px; margin-bottom:20px; }
+
+.button-container {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  position:relative;
+  z-index:2000; /* ⭐ 前面 */
+}
+.button-row {
+  display:flex;
+  gap:20px;
+}
 
 button {
   font-size:18px;
   padding:10px 20px;
-  margin:5px;
   border-radius:8px;
   border:none;
+  min-width:120px;
+  min-height:40px;
+  position:relative;
+  z-index:2001; /* ⭐ GIFより前 */
+}
+
+#laps{
+  margin-top:20px;
+  border:1px solid #000;
+  padding:10px;
+  max-width:280px;
+  max-height:200px;
+  overflow-y:auto;
 }
 
 .side-gif{
   position:fixed;
   width:120px;
   display:none;
+  z-index:1000;
 }
-#leftGif{ left:0; top:50%; transform:translateY(-50%); }
-#rightGif{ right:10px; top:50%; transform:translateY(-50%); }
 
 .added-click-gif{
   position:absolute;
+  z-index:1100;
   transform:translate(-50%,-50%);
 }
 </style>
 </head>
-<body>
+
+<body class="light-mode">
 
 <img id="leftGif" class="side-gif" src="gifs/left.gif">
 <img id="rightGif" class="side-gif" src="gifs/right.gif">
 
-<div id="timer">00:00</div>
+<div id="timer">00:00:00</div>
 
-<button id="startStopBtn">Start</button>
-<button id="resetBtn">Reset</button>
-<button id="rainbowBtn">Rainbow OFF</button>
+<div class="button-container">
+  <div class="button-row">
+    <button id="startStopBtn">Start</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+  <div class="button-row">
+    <button id="themeToggleBtn">Dark OFF</button>
+    <button id="rainbowBtn">Rainbow OFF</button>
+  </div>
+</div>
+
+<div id="lapCounterDisplay">Lap Count: 0</div>
+<div id="laps"><ul id="lapList"></ul></div>
+
+<audio id="clickSound" src="sounds/sound1.mp3"></audio>
 
 <script>
 const timer = document.getElementById('timer');
 const startStopBtn = document.getElementById('startStopBtn');
 const resetBtn = document.getElementById('resetBtn');
+const themeToggleBtn = document.getElementById('themeToggleBtn');
 const rainbowBtn = document.getElementById('rainbowBtn');
-const leftGif = document.getElementById('leftGif');
-const rightGif = document.getElementById('rightGif');
+const body = document.body;
+const clickSound = document.getElementById('clickSound');
 
 let running=false;
 let startTime=0;
@@ -66,11 +109,16 @@ let timerInterval;
 
 let rainbowActive=false;
 let addedGifs=[];
+let dragging=false;
+let capturedGifs=[];
 
 // ===== タイマー =====
 function formatTime(ms){
   const s=Math.floor(ms/1000);
-  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  const m=String(Math.floor(s/60)).padStart(2,'0');
+  const sec=String(s%60).padStart(2,'0');
+  const cs=String(Math.floor((ms%1000)/10)).padStart(2,'0');
+  return `${m}:${sec}:${cs}`;
 }
 function updateTimer(){
   if(running){
@@ -91,24 +139,22 @@ startStopBtn.onclick=()=>{
 resetBtn.onclick=()=>{
   clearInterval(timerInterval);
   elapsedTime=0;
-  timer.textContent="00:00";
+  timer.textContent="00:00:00";
 };
 
 // ===== レインボー =====
 rainbowBtn.onclick=()=>{
   rainbowActive=!rainbowActive;
-  leftGif.style.display=rainbowActive?'block':'none';
-  rightGif.style.display=rainbowActive?'block':'none';
 };
 
-// ===== GIF生成（修正済み）=====
+// ===== GIF生成（触ってたら生成しない）=====
 document.addEventListener('pointerdown', (e)=>{
   if(!rainbowActive) return;
   if(e.target.closest('button')) return;
 
   const pos={x:e.clientX,y:e.clientY};
 
-  // ⭐既存GIFに触れてたら生成しない
+  // ⭐ 既存GIFチェック
   let touching=false;
   addedGifs.forEach(gif=>{
     const rect=gif.el.getBoundingClientRect();
@@ -118,6 +164,9 @@ document.addEventListener('pointerdown', (e)=>{
     }
   });
   if(touching) return;
+
+  clickSound.currentTime=0;
+  clickSound.play().catch(()=>{});
 
   const gif=document.createElement('img');
   gif.src='gifs/left.gif';
@@ -152,22 +201,19 @@ document.addEventListener('pointerdown', (e)=>{
   addedGifs.push({el:gif,rafId:null});
 }, true);
 
-// ===== ドラッグ捕獲 =====
-let dragging=false;
-let capturedGifs=[];
-
+// ===== 捕獲判定（ドラッグ中も）=====
 function getPos(e){
   return e.touches
     ? {x:e.touches[0].clientX,y:e.touches[0].clientY}
     : {x:e.clientX,y:e.clientY};
 }
 
-// ⭐移動中も捕まえる
 function checkHit(pos){
   addedGifs.forEach(gif=>{
     if(capturedGifs.find(g=>g.gif===gif)) return;
 
     const rect=gif.el.getBoundingClientRect();
+
     if(pos.x>=rect.left && pos.x<=rect.right &&
        pos.y>=rect.top && pos.y<=rect.bottom){
 
@@ -182,6 +228,7 @@ function checkHit(pos){
   });
 }
 
+// ===== ドラッグ =====
 function dragStart(e){
   dragging=true;
   capturedGifs=[];
@@ -193,6 +240,7 @@ function dragMove(e){
   const pos=getPos(e);
   e.preventDefault();
 
+  // ⭐ 移動中も捕まえる
   checkHit(pos);
 
   capturedGifs.forEach(item=>{
@@ -229,12 +277,11 @@ function dragEnd(){
   capturedGifs=[];
 }
 
-// イベント
+// イベント登録
 ['mousedown','touchstart'].forEach(e=>document.addEventListener(e,dragStart));
 ['mousemove','touchmove'].forEach(e=>document.addEventListener(e,dragMove,{passive:false}));
 ['mouseup','touchend'].forEach(e=>document.addEventListener(e,dragEnd));
 
 </script>
-
 </body>
 </html>
