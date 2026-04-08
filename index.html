@@ -27,7 +27,7 @@ body.dark-mode { background-color:#121212; color:#fff; }
   align-items:center;
   gap:10px;
   position:relative;
-  z-index:2000; /* GIFより前面 */
+  z-index:2000; 
 }
 .button-row {
   display:flex;
@@ -44,7 +44,7 @@ button {
   min-width:120px;
   min-height:40px;
   position:relative;
-  z-index:2001; /* GIFより前面 */
+  z-index:2001; 
 }
 
 #lapCounterDisplay{ font-size:20px; margin-top:10px; }
@@ -118,7 +118,7 @@ body.rainbow-theme {
 <div id="lapCounterDisplay">Lap Count: 0</div>
 <div id="laps"><ul id="lapList"></ul></div>
 
-<audio id="rainbowBGM" src="sounds/bgm.mp3" loop></audio>
+<audio id="rainbowBGM" loop></audio>
 <audio id="clickSound" src="sounds/sound1.mp3"></audio>
 <audio id="throwSound" src="sounds/throw.mp3"></audio>
 
@@ -223,7 +223,13 @@ rainbowBtn.addEventListener('click', ()=>{
     leftGif.style.display='block';
     rightGif.style.display='block';
     rainbowBtn.textContent="Rainbow ON";
+
+    // ★ ランダムBGM選択 ★
+    const bgmFiles = ['sounds/BGM.mp3','sounds/BGM1.mp3','sounds/BGM2.mp3'];
+    const randomIndex = Math.floor(Math.random()*bgmFiles.length);
+    rainbowBGM.src = bgmFiles[randomIndex];
     rainbowBGM.play().catch(()=>{});
+
   } else {
     body.classList.remove('rainbow-theme');
     leftGif.style.display='none';
@@ -253,7 +259,11 @@ document.addEventListener('pointerdown', (e)=>{
   clickGif.src = isSpecial ? 'gifs/special.gif' : 'gifs/left.gif';
   clickGif.classList.add('added-click-gif');
 
-  let x=e.clientX, y=e.clientY, gifSize=50;
+  // ランダムサイズ: 元サイズ50pxの100〜200％
+  const baseSize = 50;
+  const gifSize = baseSize * (1 + Math.random());
+
+  let x=e.clientX, y=e.clientY;
   x = Math.min(Math.max(x, gifSize/2), window.innerWidth-gifSize/2);
   y = Math.min(Math.max(y, gifSize/2), window.innerHeight-gifSize/2);
 
@@ -346,7 +356,6 @@ function dragMove(e){
   });
 }
 
-// ----- dragEnd 修正版 -----
 function dragEnd(e){
   if(!dragging) return;
   dragging=false;
@@ -357,7 +366,7 @@ function dragEnd(e){
     let flippedX=1;
 
     const speed = Math.sqrt(vx*vx + vy*vy);
-    if(speed > 2){  // 高速のみ throw.mp3 再生
+    if(speed > 2){
       throwSound.currentTime = 0;
       throwSound.play().catch(()=>{});
     }
@@ -376,7 +385,6 @@ function dragEnd(e){
       item.gif.el.style.top=`${y}px`;
       item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
 
-      // 減速
       vx *= 0.98;
       vy *= 0.98;
 
