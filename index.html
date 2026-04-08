@@ -152,7 +152,6 @@ rainbowBtn.addEventListener('click', ()=>{
 });
 
 let dragging=false, capturedGifs=[];
-
 function getEventPos(e){ return e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
 
 document.addEventListener('pointerdown', (e)=>{
@@ -165,9 +164,9 @@ document.addEventListener('pointerdown', (e)=>{
   const clickGif=document.createElement('img');
   const rand=Math.random();
   let isChooChoo=false;
-  if(rand<0.02){ isChooChoo=true; }   // ← 2% に変更
-  const isSpecial = !isChooChoo && rand>=0.90; // ← 10% special
-  clickGif.src = isChooChoo ? 'gifs/choochoo.gif' : isSpecial ? 'gifs/special.gif' : 'gifs/left.gif'; // ← left.gifは88%
+  if(rand<0.02){ isChooChoo=true; }
+  const isSpecial = !isChooChoo && rand>=0.9;
+  clickGif.src = isChooChoo ? 'gifs/choochoo.gif' : isSpecial ? 'gifs/special.gif' : 'gifs/left.gif';
   clickGif.classList.add('added-click-gif');
 
   const baseSize = 50;
@@ -184,9 +183,19 @@ document.addEventListener('pointerdown', (e)=>{
   document.body.appendChild(clickGif);
 
   if(isChooChoo){
-    const chooAudio = new Audio('sounds/choochoo.mp3');
-    chooAudio.volume = 0.35; 
-    chooAudio.play().catch(()=>{});
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    fetch('sounds/choochoo.mp3')
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => audioCtx.decodeAudioData(arrayBuffer))
+      .then(audioBuffer => {
+        const source = audioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.playbackRate.value = 1.2; // ピッチ上げ
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0.35; // 音量35%
+        source.connect(gainNode).connect(audioCtx.destination);
+        source.start();
+      }).catch(()=>{});
   }
   if(isSpecial) new Audio('sounds/sound2.mp3').play().catch(()=>{});
 
