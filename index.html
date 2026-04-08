@@ -155,16 +155,6 @@ let dragging=false, capturedGifs=[];
 
 function getEventPos(e){ return e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
 
-// 角速度計算
-function calcAngularVelocity(lastPos, currentPos, center) {
-  const angle1 = Math.atan2(lastPos.y - center.y, lastPos.x - center.x);
-  const angle2 = Math.atan2(currentPos.y - center.y, currentPos.x - center.x);
-  let delta = angle2 - angle1;
-  if (delta > Math.PI) delta -= 2*Math.PI;
-  if (delta < -Math.PI) delta += 2*Math.PI;
-  return delta;
-}
-
 document.addEventListener('pointerdown', (e)=>{
   if(!rainbowActive || dragging) return;
   if(e.target.closest('button')) return;
@@ -175,6 +165,9 @@ document.addEventListener('pointerdown', (e)=>{
   const clickGif=document.createElement('img');
   const rand=Math.random();
   let isChooChoo=false;
+  if(rand<0.02){ isChooChoo=true; }   // ← 2% に変更
+  const isSpecial = !isChooChoo && rand>=0.90; // ← 10% special
+  clickGif.src = isChooChoo ? 'gifs/choochoo.gif' : isSpecial ? 'gifs/special.gif' : 'gifs/left.gif'; // ← left.gifは88%
   if(rand<0.02){ isChooChoo=true; }
   const isSpecial = !isChooChoo && rand>=0.9;
   clickGif.src = isChooChoo ? 'gifs/choochoo.gif' : isSpecial ? 'gifs/special.gif' : 'gifs/left.gif';
@@ -194,6 +187,9 @@ document.addEventListener('pointerdown', (e)=>{
   document.body.appendChild(clickGif);
 
   if(isChooChoo){
+    const chooAudio = new Audio('sounds/choochoo.mp3');
+    chooAudio.volume = 0.35; 
+    chooAudio.play().catch(()=>{});
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     fetch('sounds/choochoo.mp3')
       .then(response => response.arrayBuffer())
@@ -201,9 +197,9 @@ document.addEventListener('pointerdown', (e)=>{
       .then(audioBuffer => {
         const source = audioCtx.createBufferSource();
         source.buffer = audioBuffer;
-        source.playbackRate.value = 1.2;
+        source.playbackRate.value = 1.2; // ピッチ上げ
         const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0.35;
+        gainNode.gain.value = 0.35; // 音量35%
         source.connect(gainNode).connect(audioCtx.destination);
         source.start();
       }).catch(()=>{});
@@ -235,91 +231,15 @@ document.addEventListener('pointerdown', (e)=>{
   }
   move();
 
-  addedGifs.push({el:clickGif, sizeInterval, rafId:null, vx, vy, angularVelocity:0});
+  addedGifs.push({el:clickGif, sizeInterval, rafId:null, vx, vy});
 }, true);
 
-function dragStart(e){ 
-  const pos = getEventPos(e); 
-  dragging=true; 
-  capturedGifs=[]; 
-  addedGifs.forEach(gif=>{
-    const rect = gif.el.getBoundingClientRect(); 
-    if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){
-      if(!capturedGifs.find(item=>item.gif===gif)){
-        cancelAnimationFrame(gif.rafId); 
-        capturedGifs.push({ gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y, lastPos:{x:pos.x, y:pos.y}, vx:0, vy:0, angularVelocity:0 }); 
-      } 
-    }
-  }); 
-}
-
-function dragMove(e){ 
-  if(!dragging) return; 
-  const pos = getEventPos(e); 
-  e.preventDefault();
-  capturedGifs.forEach(item=>{
-    const prevPos = {...item.lastPos};
-    item.gif.el.style.left = `${pos.x + item.offsetX}px`;
-    item.gif.el.style.top  = `${pos.y + item.offsetY}px`;
-
-    // 速度
-    item.vx = pos.x - item.lastPos.x;
-    item.vy = pos.y - item.lastPos.y;
-
-    // 角速度
-    const center = {x:parseFloat(item.gif.el.style.left), y:parseFloat(item.gif.el.style.top)};
-    item.angularVelocity = calcAngularVelocity(prevPos, pos, center);
-
-    item.lastPos = {x:pos.x, y:pos.y};
-  }); 
-}
-
-function dragEnd(e){ 
-  if(!dragging) return; 
-  dragging=false; 
-  capturedGifs.forEach(item=>{
-    let vx = item.vx; 
-    let vy = item.vy; 
-    let flippedX=1; 
-    const speed = Math.sqrt(vx*vx + vy*vy); 
-    if(speed > 2){ throwSound.currentTime = 0; throwSound.play().catch(()=>{}); }
-
-    function moveWithCurve(){
-      let x=parseFloat(item.gif.el.style.left);
-      let y=parseFloat(item.gif.el.style.top);
-      let size=parseFloat(item.gif.el.style.width);
-
-      const curveFactor = 0.15;
-      const ax = curveFactor * item.angularVelocity * vy;
-      const ay = -curveFactor * item.angularVelocity * vx;
-      vx += ax;
-      vy += ay;
-
-      x += vx;
-      y += vy;
-
-      if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
-      if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
-
-      item.gif.el.style.left=`${x}px`;
-      item.gif.el.style.top=`${y}px`;
-      item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX}) rotate(${item.angularVelocity*30}rad)`;
-
-      vx *= 0.98; vy *= 0.98;
-      item.angularVelocity *= 0.95;
-
-      if(Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1){
-        item.gif.rafId=requestAnimationFrame(moveWithCurve);
-      }
-    }
-    moveWithCurve();
-  }); 
-  capturedGifs=[];
-}
+function dragStart(e){ const pos = getEventPos(e); dragging=true; capturedGifs=[]; addedGifs.forEach(gif=>{ const rect = gif.el.getBoundingClientRect(); if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){ if(!capturedGifs.find(item=>item.gif===gif)){ cancelAnimationFrame(gif.rafId); capturedGifs.push({ gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y, lastPos:{x:pos.x, y:pos.y}, vx:0, vy:0 }); } } }); }
+function dragMove(e){ if(!dragging) return; const pos = getEventPos(e); e.preventDefault(); addedGifs.forEach(gif=>{ const rect = gif.el.getBoundingClientRect(); if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){ if(!capturedGifs.find(item=>item.gif===gif)){ cancelAnimationFrame(gif.rafId); capturedGifs.push({ gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y, lastPos:{x:pos.x, y:pos.y}, vx:0, vy:0 }); } } }); capturedGifs.forEach(item=>{ item.gif.el.style.left = `${pos.x + item.offsetX}px`; item.gif.el.style.top  = `${pos.y + item.offsetY}px`; item.vx = pos.x - item.lastPos.x; item.vy = pos.y - item.lastPos.y; item.lastPos = {x:pos.x, y:pos.y}; }); }
+function dragEnd(e){ if(!dragging) return; dragging=false; capturedGifs.forEach(item=>{ let vx = item.vx; let vy = item.vy; let flippedX=1; const speed = Math.sqrt(vx*vx + vy*vy); if(speed > 2){ throwSound.currentTime = 0; throwSound.play().catch(()=>{}); } function move(){ let x=parseFloat(item.gif.el.style.left); let y=parseFloat(item.gif.el.style.top); let size=parseFloat(item.gif.el.style.width); x+=vx; y+=vy; if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; } if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; } item.gif.el.style.left=`${x}px`; item.gif.el.style.top=`${y}px`; item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`; vx *= 0.98; vy *= 0.98; if(Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1){ item.gif.rafId=requestAnimationFrame(move); } } move(); }); capturedGifs=[]; }
 
 ['mousedown','touchstart'].forEach(evt=>document.addEventListener(evt, dragStart));
 ['mousemove','touchmove'].forEach(evt=>document.addEventListener(evt, dragMove, {passive:false}));
 ['mouseup','touchend'].forEach(evt=>document.addEventListener(evt, dragEnd));
 </script>
 </body>
-</html>
