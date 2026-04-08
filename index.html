@@ -346,30 +346,43 @@ function dragMove(e){
   });
 }
 
+// ----- dragEnd 修正版 -----
 function dragEnd(e){
   if(!dragging) return;
   dragging=false;
-
-  // ここで一度だけ throw.mp3 再生
-  throwSound.currentTime = 0;
-  throwSound.play().catch(()=>{});
 
   capturedGifs.forEach(item=>{
     let vx = item.vx;
     let vy = item.vy;
     let flippedX=1;
 
+    const speed = Math.sqrt(vx*vx + vy*vy);
+    if(speed > 2){  // 高速のみ throw.mp3 再生
+      throwSound.currentTime = 0;
+      throwSound.play().catch(()=>{});
+    }
+
     function move(){
       let x=parseFloat(item.gif.el.style.left);
       let y=parseFloat(item.gif.el.style.top);
       let size=parseFloat(item.gif.el.style.width);
+
       x+=vx; y+=vy;
+
       if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
       if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
+
       item.gif.el.style.left=`${x}px`;
       item.gif.el.style.top=`${y}px`;
       item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
-      item.gif.rafId=requestAnimationFrame(move);
+
+      // 減速
+      vx *= 0.98;
+      vy *= 0.98;
+
+      if(Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1){
+        item.gif.rafId=requestAnimationFrame(move);
+      }
     }
     move();
   });
