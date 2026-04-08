@@ -224,8 +224,8 @@ rainbowBtn.addEventListener('click', ()=>{
     rightGif.style.display='block';
     rainbowBtn.textContent="Rainbow ON";
 
-    // ★ ランダムBGM選択 ★
-    const bgmFiles = ['sounds/BGM.mp3','sounds/BGM1.mp3','sounds/BGM2.mp3'];
+    // ★ ランダムBGM選択（小文字） ★
+    const bgmFiles = ['sounds/bgm.mp3','sounds/bgm1.mp3','sounds/bgm2.mp3'];
     const randomIndex = Math.floor(Math.random()*bgmFiles.length);
     rainbowBGM.src = bgmFiles[randomIndex];
     rainbowBGM.play().catch(()=>{});
@@ -255,11 +255,23 @@ document.addEventListener('pointerdown', (e)=>{
   clickSound.play().catch(()=>{});
 
   const clickGif=document.createElement('img');
-  const isSpecial = Math.random()<0.1;
-  clickGif.src = isSpecial ? 'gifs/special.gif' : 'gifs/left.gif';
+
+  // ★ GIF確率設定 ★
+  const rand = Math.random();
+  let isSpecial=false, isChooChoo=false;
+
+  if(rand < 0.05){
+    clickGif.src = 'gifs/choochoo.gif';
+    isChooChoo = true;
+  } else if(rand < 0.15){
+    clickGif.src = 'gifs/special.gif';
+    isSpecial = true;
+  } else {
+    clickGif.src = 'gifs/left.gif';
+  }
+
   clickGif.classList.add('added-click-gif');
 
-  // ランダムサイズ: 元サイズ50pxの100〜200％
   const baseSize = 50;
   const gifSize = baseSize * (1 + Math.random());
 
@@ -274,7 +286,12 @@ document.addEventListener('pointerdown', (e)=>{
   clickGif.style.transform='translate(-50%,-50%)';
   document.body.appendChild(clickGif);
 
-  if(isSpecial) new Audio('sounds/sound2.mp3').play().catch(()=>{});
+  // ★ 音再生 ★
+  if(isChooChoo){
+    new Audio('sounds/choochoo.mp3').play().catch(()=>{});
+  } else if(isSpecial){
+    new Audio('sounds/sound2.mp3').play().catch(()=>{});
+  }
 
   let size = gifSize;
   const sizeInterval = setInterval(()=>{
