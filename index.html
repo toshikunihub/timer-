@@ -27,6 +27,7 @@ body.rainbow-theme { animation: fullRainbowBG 5s linear infinite; background: li
 #leftGif{ left:0; top:50%; transform:translateY(-50%); }
 #rightGif{ right:10px; top:50%; transform:translateY(-50%); }
 .added-click-gif{ position:absolute; pointer-events:auto; z-index:1100; transition:transform 0.1s; }
+#scoreDisplay{ position:fixed; bottom:10px; left:50%; transform:translateX(-50%); font-size:24px; font-weight:bold; z-index:3000; }
 </style>
 </head>
 <body class="light-mode">
@@ -45,6 +46,7 @@ body.rainbow-theme { animation: fullRainbowBG 5s linear infinite; background: li
 </div>
 <div id="lapCounterDisplay">Lap Count: 0</div>
 <div id="laps"><ul id="lapList"></ul></div>
+<div id="scoreDisplay">Score: 0</div>
 <audio id="rainbowBGM" loop></audio>
 <audio id="clickSound" src="sounds/sound1.mp3"></audio>
 <audio id="throwSound" src="sounds/throw.mp3"></audio>
@@ -63,10 +65,12 @@ const rightGif = document.getElementById('rightGif');
 const rainbowBGM = document.getElementById('rainbowBGM');
 const clickSound = document.getElementById('clickSound');
 const throwSound = document.getElementById('throwSound');
+const scoreDisplay = document.getElementById('scoreDisplay');
 
 let startTime=0, elapsedTime=0, timerInterval=null, running=false, rainbowActive=false;
 let laps=[], lapCounter=0;
 let addedGifs=[];
+let score=0;
 
 themeToggleBtn.textContent = body.classList.contains('dark-mode') ? "Dark ON" : "Dark OFF";
 
@@ -81,6 +85,7 @@ function formatTime(ms){
 function updateTimer(){ if(running){ elapsedTime = Date.now() - startTime; timer.textContent = formatTime(elapsedTime); } }
 function updateLapCounterDisplay(){ lapCounterDisplay.textContent = `Lap Count: ${lapCounter}`; }
 function renderLaps(){ lapList.innerHTML=''; laps.forEach(lap=>{ const li=document.createElement('li'); li.innerHTML = `<span class="lap-number">Lap ${lap.number}</span><span class="lap-time">${lap.time}</span>`; lapList.appendChild(li); setTimeout(()=>li.classList.add('show'),50); }); lapList.scrollTop = lapList.scrollHeight; }
+function updateScoreDisplay(){ scoreDisplay.textContent = `Score: ${score}`; }
 
 themeToggleBtn.addEventListener('click', ()=>{
   body.classList.toggle('dark-mode');
@@ -123,6 +128,8 @@ resetBtn.addEventListener('click', ()=>{
   addedGifs.forEach(obj=>cancelAnimationFrame(obj.rafId));
   addedGifs.forEach(obj=>obj.el.remove());
   addedGifs=[];
+  score=0;
+  updateScoreDisplay();
 });
 
 rainbowBtn.addEventListener('click', ()=>{
@@ -168,6 +175,7 @@ document.addEventListener('pointerdown', (e)=>{
   const isSpecial = !isChooChoo && rand>=0.9;
   clickGif.src = isChooChoo ? 'gifs/choochoo.gif' : isSpecial ? 'gifs/special.gif' : 'gifs/left.gif';
   clickGif.classList.add('added-click-gif');
+  clickGif.dataset.type = isChooChoo ? 'choochoo' : isSpecial ? 'special' : 'left';
 
   const baseSize = 50;
   const gifSize = baseSize * (1 + Math.random());
@@ -190,9 +198,9 @@ document.addEventListener('pointerdown', (e)=>{
       .then(audioBuffer => {
         const source = audioCtx.createBufferSource();
         source.buffer = audioBuffer;
-        source.playbackRate.value = 1.2; // ピッチ上げ
+        source.playbackRate.value = 1.2;
         const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 0.35; // 音量35%
+        gainNode.gain.value = 0.35;
         source.connect(gainNode).connect(audioCtx.destination);
         source.start();
       }).catch(()=>{});
@@ -209,14 +217,17 @@ document.addEventListener('pointerdown', (e)=>{
   let vx=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
   let vy=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
   let flippedX=1;
+  let bounced=false; // 壁に反射したかどうか
+  clickGif.bounced = false;
 
   function move(){
     let x=parseFloat(clickGif.style.left);
     let y=parseFloat(clickGif.style.top);
     let size=parseFloat(clickGif.style.width);
     x+=vx; y+=vy;
-    if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
-    if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
+    if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; bounced=true; clickGif.bounced=true; }
+    if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; bounced=true; clickGif.bounced=true; }
+
     clickGif.style.left=`${x}px`;
     clickGif.style.top=`${y}px`;
     clickGif.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
@@ -224,12 +235,77 @@ document.addEventListener('pointerdown', (e)=>{
   }
   move();
 
-  addedGifs.push({el:clickGif, sizeInterval, rafId:null, vx, vy});
+  addedGifs.push({el:clickGif, sizeInterval, rafId:null, vx, vy, bounced});
 }, true);
 
-function dragStart(e){ const pos = getEventPos(e); dragging=true; capturedGifs=[]; addedGifs.forEach(gif=>{ const rect = gif.el.getBoundingClientRect(); if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){ if(!capturedGifs.find(item=>item.gif===gif)){ cancelAnimationFrame(gif.rafId); capturedGifs.push({ gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y, lastPos:{x:pos.x, y:pos.y}, vx:0, vy:0 }); } } }); }
-function dragMove(e){ if(!dragging) return; const pos = getEventPos(e); e.preventDefault(); addedGifs.forEach(gif=>{ const rect = gif.el.getBoundingClientRect(); if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){ if(!capturedGifs.find(item=>item.gif===gif)){ cancelAnimationFrame(gif.rafId); capturedGifs.push({ gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y, lastPos:{x:pos.x, y:pos.y}, vx:0, vy:0 }); } } }); capturedGifs.forEach(item=>{ item.gif.el.style.left = `${pos.x + item.offsetX}px`; item.gif.el.style.top  = `${pos.y + item.offsetY}px`; item.vx = pos.x - item.lastPos.x; item.vy = pos.y - item.lastPos.y; item.lastPos = {x:pos.x, y:pos.y}; }); }
-function dragEnd(e){ if(!dragging) return; dragging=false; capturedGifs.forEach(item=>{ let vx = item.vx; let vy = item.vy; let flippedX=1; const speed = Math.sqrt(vx*vx + vy*vy); if(speed > 2){ throwSound.currentTime = 0; throwSound.play().catch(()=>{}); } function move(){ let x=parseFloat(item.gif.el.style.left); let y=parseFloat(item.gif.el.style.top); let size=parseFloat(item.gif.el.style.width); x+=vx; y+=vy; if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; } if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; } item.gif.el.style.left=`${x}px`; item.gif.el.style.top=`${y}px`; item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`; vx *= 0.98; vy *= 0.98; if(Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1){ item.gif.rafId=requestAnimationFrame(move); } } move(); }); capturedGifs=[]; }
+function dragStart(e){
+  const pos = getEventPos(e);
+  dragging=true;
+  capturedGifs=[];
+  addedGifs.forEach(gif=>{
+    const rect = gif.el.getBoundingClientRect();
+    if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){
+      if(!capturedGifs.find(item=>item.gif===gif)){
+        cancelAnimationFrame(gif.rafId);
+        capturedGifs.push({ gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y, lastPos:{x:pos.x, y:pos.y}, vx:0, vy:0 });
+      }
+    }
+  });
+}
+
+function dragMove(e){
+  if(!dragging) return;
+  const pos = getEventPos(e);
+  e.preventDefault();
+  capturedGifs.forEach(item=>{
+    item.gif.el.style.left = `${pos.x + item.offsetX}px`;
+    item.gif.el.style.top  = `${pos.y + item.offsetY}px`;
+    item.vx = pos.x - item.lastPos.x;
+    item.vy = pos.y - item.lastPos.y;
+    item.lastPos = {x:pos.x, y:pos.y};
+  });
+}
+
+function dragEnd(e){
+  if(!dragging) return;
+  dragging=false;
+  capturedGifs.forEach(item=>{
+    let vx = item.vx;
+    let vy = item.vy;
+    let flippedX=1;
+    const speed = Math.sqrt(vx*vx + vy*vy);
+    if(speed > 2){ throwSound.currentTime = 0; throwSound.play().catch(()=>{}); }
+
+    function move(){
+      let x=parseFloat(item.gif.el.style.left);
+      let y=parseFloat(item.gif.el.style.top);
+      let size=parseFloat(item.gif.el.style.width);
+      x+=vx; y+=vy;
+      if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; item.gif.bounced=true; }
+      if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; item.gif.bounced=true; }
+
+      // 上端判定（ドラッグ投げGIFのみ・一度も反射していない場合のみ）
+      if(rainbowActive && y - size/2 <= 0 && !item.gif.bounced){
+        if(item.gif.dataset.type==='left') score+=1;
+        else if(item.gif.dataset.type==='special') score+=3;
+        else if(item.gif.dataset.type==='choochoo') score+=10;
+        updateScoreDisplay();
+        cancelAnimationFrame(item.gif.rafId);
+        item.gif.remove();
+        return;
+      }
+
+      item.gif.style.left=`${x}px`;
+      item.gif.style.top=`${y}px`;
+      item.gif.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
+
+      vx *= 0.98; vy *= 0.98;
+      if(Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1){ item.gif.rafId=requestAnimationFrame(move); }
+    }
+    move();
+  });
+  capturedGifs=[];
+}
 
 ['mousedown','touchstart'].forEach(evt=>document.addEventListener(evt, dragStart));
 ['mousemove','touchmove'].forEach(evt=>document.addEventListener(evt, dragMove, {passive:false}));
