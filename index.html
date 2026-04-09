@@ -269,7 +269,7 @@ document.addEventListener('pointerdown', (e)=>{
 
   const rand = Math.random()*100;
   let clickGif = document.createElement('img');
-  let audioSrc = 'sounds/sound.mp3';
+  let audioSrc = 'sounds/sound1.mp3'; // ←修正済み
 
   if (rand < 7) clickGif.src='gifs/left.gif';
   else if (rand < 10){ clickGif.src='gifs/choochoo.gif'; audioSrc='sounds/choochoo.mp3'; }
@@ -337,12 +337,11 @@ document.addEventListener('pointerdown', (e)=>{
 
   move();
 
-  // ★ここが修正ポイント（復元）
   addedGifs.push({el:clickGif, sizeInterval, rafId:null, vx, vy});
 
 }, true);
 
-// ドラッグ処理（元のまま）
+// ドラッグ処理
 let dragging=false, capturedGifs=[];
 
 function getEventPos(e){
