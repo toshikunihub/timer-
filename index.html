@@ -109,11 +109,9 @@ rainbowBtn.addEventListener('click', ()=>{
   rainbowActive = !rainbowActive;
   if(rainbowActive){
     body.classList.add('rainbow-theme'); leftGif.style.display='block'; rightGif.style.display='block'; rainbowBtn.textContent="Rainbow ON";
-    
-    const bgmFiles = ['sounds/bgm.mp3','sounds/bgm1.mp3']; // 2種類に限定
+    const bgmFiles = ['sounds/bgm.mp3','sounds/bgm1.mp3']; // 2種類のみ
     rainbowBGM.src = bgmFiles[Math.floor(Math.random()*bgmFiles.length)];
     rainbowBGM.play().catch(()=>{});
-    
   } else {
     body.classList.remove('rainbow-theme'); leftGif.style.display='none'; rightGif.style.display='none'; rainbowBtn.textContent="Rainbow OFF";
     rainbowBGM.pause(); rainbowBGM.currentTime=0; clearAllGifs();
@@ -121,7 +119,7 @@ rainbowBtn.addEventListener('click', ()=>{
 });
 
 // ----------------------
-// GIFクリック生成（choochooピッチ1.2倍）
+// GIFクリック生成（choochooピッチ1.2倍で音程も上げる）
 // ----------------------
 let dragging=false, capturedGifs=[];
 
@@ -150,7 +148,7 @@ document.addEventListener('pointerdown', (e)=>{
 
   if(isChooChoo){ 
     const audio = new Audio('sounds/choochoo.mp3');
-    audio.playbackRate = 1.2; // ピッチを1.2倍
+    audio.playbackRate = 1.2; // ピッチ＆音程1.2倍
     audio.play().catch(()=>{}); 
   }
   if(isSpecial) new Audio('sounds/sound2.mp3').play().catch(()=>{});
@@ -173,7 +171,7 @@ document.addEventListener('pointerdown', (e)=>{
 }, true);
 
 // ----------------------
-// ドラッグしてGIFを捕まえる処理
+// ドラッグしてGIFを捕まえる処理（回転速度1.5倍）
 // ----------------------
 function dragStart(e){ dragging=true; capturedGifs=[]; }
 function dragMove(e){
@@ -194,10 +192,12 @@ function dragMove(e){
     item.lastPos={x:pos.x, y:pos.y};
   });
 }
+
 function dragEnd(e){
   if(!dragging) return; dragging=false;
   capturedGifs.forEach(item=>{
     let vx=item.vx, vy=item.vy, flippedX=1;
+    let angle = 0; // 回転角度
     const speed=Math.sqrt(vx*vx+vy*vy);
     if(speed>2){ throwSound.currentTime=0; throwSound.play().catch(()=>{}); }
     function move(){
@@ -205,7 +205,17 @@ function dragEnd(e){
       x+=vx; y+=vy;
       if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
       if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
-      item.gif.el.style.left=`${x}px`; item.gif.el.style.top=`${y}px`; item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
+
+      // 回転演出：速度がある間のみ（回転速度1.5倍）
+      const speedMagnitude = Math.sqrt(vx*vx + vy*vy);
+      if(speedMagnitude>0.1){ 
+        angle += speedMagnitude * 0.5 * 1.5; // ←1.5倍に変更
+      }
+
+      item.gif.el.style.left=`${x}px`; 
+      item.gif.el.style.top=`${y}px`; 
+      item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX}) rotate(${angle}deg)`;
+
       vx*=0.98; vy*=0.98;
       if(Math.abs(vx)>0.1 || Math.abs(vy)>0.1){ item.gif.rafId=requestAnimationFrame(move); }
     }
