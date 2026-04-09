@@ -5,63 +5,18 @@
 <title>タイマー</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
-body {
-  font-family: Arial,sans-serif;
-  text-align:center;
-  margin:0;
-  padding-top:50px;
-  transition: background-color 0.5s, color 0.5s;
-  position: relative;
-  -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
-  touch-action: none;
-}
+body { font-family: Arial,sans-serif; text-align:center; margin:0; padding-top:50px; transition: background-color 0.5s, color 0.5s; position: relative; -webkit-tap-highlight-color: transparent; overflow-x: hidden; touch-action: none; }
 body.light-mode { background-color:#fff; color:#000; }
 body.dark-mode { background-color:#121212; color:#fff; }
 
 #timer { font-size:48px; margin-bottom:20px; display:inline-block; transition:transform 0.2s; }
 
-.button-container {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:10px;
-  position:relative;
-  z-index:2000; 
-}
-.button-row {
-  display:flex;
-  gap:20px;
-  justify-content:center;
-}
-
-button {
-  font-size:18px;
-  padding:10px 20px;
-  cursor:pointer;
-  border-radius:8px;
-  border:none;
-  min-width:120px;
-  min-height:40px;
-  position:relative;
-  z-index:2001; 
-}
+.button-container { display:flex; flex-direction:column; align-items:center; gap:10px; position:relative; z-index:2000; }
+.button-row { display:flex; gap:20px; justify-content:center; }
+button { font-size:18px; padding:10px 20px; cursor:pointer; border-radius:8px; border:none; min-width:120px; min-height:40px; position:relative; z-index:2001; }
 
 #lapCounterDisplay{ font-size:20px; margin-top:10px; }
-
-#laps{
-  margin-top:20px;
-  border:1px solid #000;
-  display:inline-block;
-  padding:10px;
-  max-width:280px;
-  max-height:200px;
-  overflow-y:auto;
-  background-color:rgba(255,255,255,0.05);
-  position: relative;
-  z-index:1;
-  pointer-events: none;
-}
+#laps{ margin-top:20px; border:1px solid #000; display:inline-block; padding:10px; max-width:280px; max-height:200px; overflow-y:auto; background-color:rgba(255,255,255,0.05); position: relative; z-index:1; pointer-events: none; }
 #laps ul{ list-style:none; padding:0; margin:0; }
 #laps li{ display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #888; padding:5px 0; opacity:0; transform:translateY(-10px); transition:all 0.3s; }
 #laps li.show{ opacity:1; transform:translateY(0); }
@@ -71,31 +26,14 @@ button {
 #rainbowBtn{ background:linear-gradient(270deg,red,orange,yellow,green,blue,indigo,violet); background-size:1400% 1400%; color:white; animation:rainbowBG 10s ease infinite; }
 @keyframes rainbowBG{ 0%{background-position:0% 50%;} 50%{background-position:100% 50%;} 100%{background-position:0% 50%;} }
 
-body.rainbow-theme {
-  animation: fullRainbowBG 5s linear infinite;
-  background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
-  background-size: 1400% 1400%;
-}
+body.rainbow-theme { animation: fullRainbowBG 5s linear infinite; background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet); background-size: 1400% 1400%; }
+@keyframes fullRainbowBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-@keyframes fullRainbowBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.side-gif{
-  position:fixed;
-  width:120px;
-  height:120px;
-  display:none;
-  z-index:1000;
-  pointer-events:none;
-}
+.side-gif{ position:fixed; width:120px; height:120px; display:none; z-index:1000; pointer-events:none; }
 #leftGif{ left:0; top:50%; transform:translateY(-50%); }
 #rightGif{ right:10px; top:50%; transform:translateY(-50%); }
 
 .added-click-gif{ position:absolute; pointer-events:auto; z-index:1100; transition:transform 0.1s; }
-
 </style>
 </head>
 <body class="light-mode">
@@ -103,7 +41,6 @@ body.rainbow-theme {
 <img id="rightGif" class="side-gif" src="gifs/right.gif">
 
 <div id="timer">00:00:00</div>
-
 <div class="button-container">
   <div class="button-row">
     <button id="startStopBtn">Start</button>
@@ -137,9 +74,9 @@ const rainbowBGM = document.getElementById('rainbowBGM');
 const clickSound = document.getElementById('clickSound');
 const throwSound = document.getElementById('throwSound');
 
-let startTime=0, elapsedTime=0, timerInterval=null, running=false, rainbowActive=false;
-let laps=[], lapCounter=0;
-let addedGifs=[];
+let startTime = 0, elapsedTime = 0, timerInterval = null, running = false, rainbowActive = false;
+let laps = [], lapCounter = 0;
+let addedGifs = [];
 
 themeToggleBtn.textContent = body.classList.contains('dark-mode') ? "Dark ON" : "Dark OFF";
 
@@ -151,252 +88,134 @@ function formatTime(ms){
   return `${minutes}:${seconds}:${centiseconds}`;
 }
 
-function updateTimer(){
-  if(running){
-    elapsedTime = Date.now() - startTime;
-    timer.textContent = formatTime(elapsedTime);
-  }
-}
+function updateTimer(){ if(running){ elapsedTime = Date.now() - startTime; timer.textContent = formatTime(elapsedTime); } }
+function updateLapCounterDisplay(){ lapCounterDisplay.textContent = `Lap Count: ${lapCounter}`; }
+function renderLaps(){ lapList.innerHTML=''; laps.forEach(lap=>{ const li=document.createElement('li'); li.innerHTML = `<span class="lap-number">Lap ${lap.number}</span><span class="lap-time">${lap.time}</span>`; lapList.appendChild(li); setTimeout(()=>li.classList.add('show'),50); }); lapList.scrollTop = lapList.scrollHeight; }
+function clearAllGifs(){ addedGifs.forEach(obj=>{ clearInterval(obj.sizeInterval); cancelAnimationFrame(obj.rafId); obj.el.remove(); }); addedGifs=[]; }
 
-function updateLapCounterDisplay(){
-  lapCounterDisplay.textContent = `Lap Count: ${lapCounter}`;
-}
-
-function renderLaps(){
-  lapList.innerHTML='';
-  laps.forEach(lap=>{
-    const li=document.createElement('li');
-    li.innerHTML = `<span class="lap-number">Lap ${lap.number}</span><span class="lap-time">${lap.time}</span>`;
-    lapList.appendChild(li);
-    setTimeout(()=>li.classList.add('show'),50);
-  });
-  lapList.scrollTop = lapList.scrollHeight;
-}
-
-themeToggleBtn.addEventListener('click', ()=>{
-  body.classList.toggle('dark-mode');
-  body.classList.toggle('light-mode');
-  themeToggleBtn.textContent = body.classList.contains('dark-mode') ? "Dark ON" : "Dark OFF";
-});
+themeToggleBtn.addEventListener('click', ()=>{ body.classList.toggle('dark-mode'); body.classList.toggle('light-mode'); themeToggleBtn.textContent = body.classList.contains('dark-mode') ? "Dark ON" : "Dark OFF"; });
 
 startStopBtn.addEventListener('click', ()=>{
-  if(!running){
-    startTime = Date.now() - elapsedTime;
-    timerInterval = setInterval(updateTimer, 10);
-    startStopBtn.textContent='Stop';
-    running=true;
-  } else {
-    clearInterval(timerInterval);
-    elapsedTime = Date.now() - startTime;
-    startStopBtn.textContent='Start';
-    running=false;
-    if(elapsedTime>0){
-      lapCounter++;
-      laps.unshift({number:lapCounter,time:formatTime(elapsedTime)});
-      if(laps.length>10) laps.pop();
-      renderLaps();
-      updateLapCounterDisplay();
-    }
-  }
+  if(!running){ startTime = Date.now() - elapsedTime; timerInterval = setInterval(updateTimer, 10); startStopBtn.textContent='Stop'; running=true; } 
+  else { clearInterval(timerInterval); elapsedTime = Date.now()-startTime; startStopBtn.textContent='Start'; running=false; if(elapsedTime>0){ lapCounter++; laps.unshift({number:lapCounter,time:formatTime(elapsedTime)}); if(laps.length>10) laps.pop(); renderLaps(); updateLapCounterDisplay(); } }
 });
 
-resetBtn.addEventListener('click', ()=>{
-  clearInterval(timerInterval);
-  elapsedTime=0;
-  timer.textContent="00:00:00";
-  startStopBtn.textContent='Start';
-  running=false;
-  laps=[];
-  lapCounter=0;
-  updateLapCounterDisplay();
-  renderLaps();
-  addedGifs.forEach(obj=>clearInterval(obj.sizeInterval));
-  addedGifs.forEach(obj=>cancelAnimationFrame(obj.rafId));
-  addedGifs.forEach(obj=>obj.el.remove());
-  addedGifs=[];
-});
+resetBtn.addEventListener('click', ()=>{ clearInterval(timerInterval); elapsedTime=0; timer.textContent="00:00:00"; startStopBtn.textContent='Start'; running=false; laps=[]; lapCounter=0; updateLapCounterDisplay(); renderLaps(); clearAllGifs(); });
 
+// ----------------------
+// ランダムBGM（2種類のみ）とRainbow演出
+// ----------------------
 rainbowBtn.addEventListener('click', ()=>{
-  rainbowActive=!rainbowActive;
+  rainbowActive = !rainbowActive;
   if(rainbowActive){
-    body.classList.add('rainbow-theme');
-    leftGif.style.display='block';
-    rightGif.style.display='block';
-    rainbowBtn.textContent="Rainbow ON";
-
-    // ★ ランダムBGM選択 ★
-    const bgmFiles = ['sounds/bgm.mp3','sounds/bgm1.mp3','sounds/bgm2.mp3'];
-    const randomIndex = Math.floor(Math.random()*bgmFiles.length);
-    rainbowBGM.src = bgmFiles[randomIndex];
+    body.classList.add('rainbow-theme'); leftGif.style.display='block'; rightGif.style.display='block'; rainbowBtn.textContent="Rainbow ON";
+    
+    const bgmFiles = ['sounds/bgm.mp3','sounds/bgm1.mp3']; // 2種類に限定
+    rainbowBGM.src = bgmFiles[Math.floor(Math.random()*bgmFiles.length)];
     rainbowBGM.play().catch(()=>{});
-
+    
   } else {
-    body.classList.remove('rainbow-theme');
-    leftGif.style.display='none';
-    rightGif.style.display='none';
-    rainbowBtn.textContent="Rainbow OFF";
-    rainbowBGM.pause();
-    rainbowBGM.currentTime=0;
-    addedGifs.forEach(obj=>clearInterval(obj.sizeInterval));
-    addedGifs.forEach(obj=>cancelAnimationFrame(obj.rafId));
-    addedGifs.forEach(obj=>obj.el.remove());
-    addedGifs=[];
+    body.classList.remove('rainbow-theme'); leftGif.style.display='none'; rightGif.style.display='none'; rainbowBtn.textContent="Rainbow OFF";
+    rainbowBGM.pause(); rainbowBGM.currentTime=0; clearAllGifs();
   }
 });
 
+// ----------------------
+// GIFクリック生成（choochooピッチ1.2倍）
+// ----------------------
 let dragging=false, capturedGifs=[];
+
 function getEventPos(e){ return e.touches ? {x:e.touches[0].clientX, y:e.touches[0].clientY} : {x:e.clientX, y:e.clientY}; }
 
 document.addEventListener('pointerdown', (e)=>{
-  if(!rainbowActive || dragging) return;
+  if(!rainbowActive) return;
   if(e.target.closest('button')) return;
-
-  clickSound.currentTime=0;
-  clickSound.play().catch(()=>{});
-
+  clickSound.currentTime=0; clickSound.play().catch(()=>{});
   const clickGif=document.createElement('img');
-  const rand = Math.random();
-  let isSpecial=false, isChooChoo=false;
-
-  if(rand < 0.05){
-    clickGif.src = 'gifs/choochoo.gif';
-    isChooChoo = true;
-  } else if(rand < 0.15){
-    clickGif.src = 'gifs/special.gif';
-    isSpecial = true;
-  } else {
-    clickGif.src = 'gifs/left.gif';
+  const rand = Math.random(); let isSpecial=false, isChooChoo=false;
+  if(rand<0.05){ 
+    clickGif.src='gifs/choochoo.gif'; 
+    isChooChoo=true; 
   }
+  else if(rand<0.15){ clickGif.src='gifs/special.gif'; isSpecial=true; }
+  else { clickGif.src='gifs/left.gif'; }
 
   clickGif.classList.add('added-click-gif');
-
-  const baseSize = 50;
-  const gifSize = baseSize * (1 + Math.random());
+  const baseSize=50; const gifSize=baseSize*(1+Math.random());
   let x=e.clientX, y=e.clientY;
-  x = Math.min(Math.max(x, gifSize/2), window.innerWidth-gifSize/2);
-  y = Math.min(Math.max(y, gifSize/2), window.innerHeight-gifSize/2);
-
-  clickGif.style.left=`${x}px`;
-  clickGif.style.top=`${y}px`;
-  clickGif.style.width=`${gifSize}px`;
-  clickGif.style.height=`${gifSize}px`;
-  clickGif.style.transform='translate(-50%,-50%)';
+  x=Math.min(Math.max(x,gifSize/2),window.innerWidth-gifSize/2);
+  y=Math.min(Math.max(y,gifSize/2),window.innerHeight-gifSize/2);
+  clickGif.style.left=`${x}px`; clickGif.style.top=`${y}px`; clickGif.style.width=`${gifSize}px`; clickGif.style.height=`${gifSize}px`; clickGif.style.transform='translate(-50%,-50%)';
   document.body.appendChild(clickGif);
 
-  if(isChooChoo){
-    new Audio('sounds/choochoo.mp3').play().catch(()=>{});
-  } else if(isSpecial){
-    new Audio('sounds/sound2.mp3').play().catch(()=>{});
+  if(isChooChoo){ 
+    const audio = new Audio('sounds/choochoo.mp3');
+    audio.playbackRate = 1.2; // ピッチを1.2倍
+    audio.play().catch(()=>{}); 
   }
+  if(isSpecial) new Audio('sounds/sound2.mp3').play().catch(()=>{});
 
   let size = gifSize;
-  const sizeInterval = setInterval(()=>{
-    size *= 1.05;
-    clickGif.style.width = `${size}px`;
-    clickGif.style.height = `${size}px`;
-  },10000);
+  const sizeInterval=setInterval(()=>{ size*=1.05; clickGif.style.width=`${size}px`; clickGif.style.height=`${size}px`; },10000);
 
-  let vx=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
-  let vy=(Math.random()*4+2)*(Math.random()<0.5?-1:1);
-  let flippedX=1;
+  let vx=(Math.random()*4+2)*(Math.random()<0.5?-1:1); let vy=(Math.random()*4+2)*(Math.random()<0.5?-1:1); let flippedX=1;
 
   function move(){
-    let x=parseFloat(clickGif.style.left);
-    let y=parseFloat(clickGif.style.top);
-    let size=parseFloat(clickGif.style.width);
+    let x=parseFloat(clickGif.style.left); let y=parseFloat(clickGif.style.top); let size=parseFloat(clickGif.style.width);
     x+=vx; y+=vy;
     if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
     if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
-    clickGif.style.left=`${x}px`;
-    clickGif.style.top=`${y}px`;
-    clickGif.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
+    clickGif.style.left=`${x}px`; clickGif.style.top=`${y}px`; clickGif.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
     clickGif.rafId=requestAnimationFrame(move);
   }
   move();
-
   addedGifs.push({el:clickGif, sizeInterval, rafId:null, vx, vy});
 }, true);
 
-function dragStart(e){
-  const pos = getEventPos(e);
-  dragging=true;
-  capturedGifs=[];
-
-  addedGifs.forEach(gif=>{
-    const rect = gif.el.getBoundingClientRect();
-    if(pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom){
-      if(!capturedGifs.find(item=>item.gif===gif)){
-        cancelAnimationFrame(gif.rafId);
-        capturedGifs.push({
-          gif,
-          offsetX:parseFloat(gif.el.style.left)-pos.x,
-          offsetY:parseFloat(gif.el.style.top)-pos.y,
-          lastPos:{x:pos.x, y:pos.y},
-          vx:0, vy:0
-        });
-      }
-    }
-  });
-}
-
+// ----------------------
+// ドラッグしてGIFを捕まえる処理
+// ----------------------
+function dragStart(e){ dragging=true; capturedGifs=[]; }
 function dragMove(e){
   if(!dragging) return;
-  const pos = getEventPos(e);
-  e.preventDefault();
-
+  const pos = getEventPos(e); e.preventDefault();
+  addedGifs.forEach(gif=>{
+    if(capturedGifs.find(item=>item.gif===gif)) return;
+    const rect=gif.el.getBoundingClientRect();
+    if(pos.x>=rect.left && pos.x<=rect.right && pos.y>=rect.top && pos.y<=rect.bottom){
+      cancelAnimationFrame(gif.rafId);
+      capturedGifs.push({gif, offsetX:parseFloat(gif.el.style.left)-pos.x, offsetY:parseFloat(gif.el.style.top)-pos.y, lastPos:{x:pos.x,y:pos.y}, vx:0, vy:0});
+    }
+  });
   capturedGifs.forEach(item=>{
-    item.gif.el.style.left = `${pos.x + item.offsetX}px`;
-    item.gif.el.style.top  = `${pos.y + item.offsetY}px`;
-    item.vx = pos.x - item.lastPos.x;
-    item.vy = pos.y - item.lastPos.y;
-    item.lastPos = {x:pos.x, y:pos.y};
+    item.gif.el.style.left=`${pos.x+item.offsetX}px`;
+    item.gif.el.style.top=`${pos.y+item.offsetY}px`;
+    item.vx = pos.x - item.lastPos.x; item.vy = pos.y - item.lastPos.y;
+    item.lastPos={x:pos.x, y:pos.y};
   });
 }
-
 function dragEnd(e){
-  if(!dragging) return;
-  dragging=false;
-
+  if(!dragging) return; dragging=false;
   capturedGifs.forEach(item=>{
-    let vx = item.vx;
-    let vy = item.vy;
-    let flippedX=1;
-
-    const speed = Math.sqrt(vx*vx + vy*vy);
-    if(speed > 2){
-      throwSound.currentTime = 0;
-      throwSound.play().catch(()=>{});
-    }
-
+    let vx=item.vx, vy=item.vy, flippedX=1;
+    const speed=Math.sqrt(vx*vx+vy*vy);
+    if(speed>2){ throwSound.currentTime=0; throwSound.play().catch(()=>{}); }
     function move(){
-      let x=parseFloat(item.gif.el.style.left);
-      let y=parseFloat(item.gif.el.style.top);
-      let size=parseFloat(item.gif.el.style.width);
-
+      let x=parseFloat(item.gif.el.style.left); let y=parseFloat(item.gif.el.style.top); let size=parseFloat(item.gif.el.style.width);
       x+=vx; y+=vy;
-
       if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
       if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
-
-      item.gif.el.style.left=`${x}px`;
-      item.gif.el.style.top=`${y}px`;
-      item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
-
-      vx *= 0.98;
-      vy *= 0.98;
-
-      if(Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1){
-        item.gif.rafId=requestAnimationFrame(move);
-      }
+      item.gif.el.style.left=`${x}px`; item.gif.el.style.top=`${y}px`; item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
+      vx*=0.98; vy*=0.98;
+      if(Math.abs(vx)>0.1 || Math.abs(vy)>0.1){ item.gif.rafId=requestAnimationFrame(move); }
     }
     move();
   });
-
   capturedGifs=[];
 }
 
 ['mousedown','touchstart'].forEach(evt=>document.addEventListener(evt, dragStart));
-['mousemove','touchmove'].forEach(evt=>document.addEventListener(evt, dragMove, {passive:false}));
+['mousemove','touchmove'].forEach(evt=>document.addEventListener(evt, dragMove,{passive:false}));
 ['mouseup','touchend'].forEach(evt=>document.addEventListener(evt, dragEnd));
 </script>
 </body>
