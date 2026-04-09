@@ -157,8 +157,10 @@ document.addEventListener('pointerdown', (e)=>{
   function move(){
     let x=parseFloat(clickGif.style.left); let y=parseFloat(clickGif.style.top); let size=parseFloat(clickGif.style.width);
     x+=vx; y+=vy;
-    if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
-    if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
+    if(x-size/2<=0){ x=size/2; vx*=-1; flippedX*=-1; }
+    if(x+size/2>=window.innerWidth){ x=window.innerWidth-size/2; vx*=-1; flippedX*=-1; }
+    if(y-size/2<=0){ y=size/2; vy*=-1; }
+    if(y+size/2>=window.innerHeight){ y=window.innerHeight-size/2; vy*=-1; }
     clickGif.style.left=`${x}px`; clickGif.style.top=`${y}px`; clickGif.style.transform=`translate(-50%,-50%) scaleX(${flippedX})`;
     clickGif.rafId=requestAnimationFrame(move);
   }
@@ -167,7 +169,7 @@ document.addEventListener('pointerdown', (e)=>{
 }, true);
 
 // ----------------------
-// ドラッグ＆投げる処理（回転自然に減速）
+// ドラッグ＆投げる処理（壁補正＆回転自然減速）
 // ----------------------
 function dragStart(e){ dragging=true; capturedGifs=[]; }
 function dragMove(e){
@@ -199,19 +201,23 @@ function dragEnd(e){
     function move(){
       let x=parseFloat(item.gif.el.style.left); let y=parseFloat(item.gif.el.style.top); let size=parseFloat(item.gif.el.style.width);
       x+=vx; y+=vy;
-      if(x-size/2<=0||x+size/2>=window.innerWidth){ vx*=-1; flippedX*=-1; }
-      if(y-size/2<=0||y+size/2>=window.innerHeight){ vy*=-1; }
+
+      // 壁判定＆補正
+      if(x-size/2<=0){ x=size/2; vx*=-1; flippedX*=-1; }
+      if(x+size/2>=window.innerWidth){ x=window.innerWidth-size/2; vx*=-1; flippedX*=-1; }
+      if(y-size/2<=0){ y=size/2; vy*=-1; }
+      if(y+size/2>=window.innerHeight){ y=window.innerHeight-size/2; vy*=-1; }
 
       const speedMagnitude = Math.sqrt(vx*vx + vy*vy);
       if(speedMagnitude>0.1){ 
-        angle += speedMagnitude * 0.5 * 1.5; // 1.5倍の回転
+        angle += speedMagnitude * 0.5 * 1.5; // 回転1.5倍
       }
 
       item.gif.el.style.left=`${x}px`;
       item.gif.el.style.top=`${y}px`;
       item.gif.el.style.transform=`translate(-50%,-50%) scaleX(${flippedX}) rotate(${angle}deg)`;
 
-      vx*=0.98; vy*=0.98; // 減速
+      vx*=0.98; vy*=0.98;
       if(Math.abs(vx)>0.1 || Math.abs(vy)>0.1){ item.rafId=requestAnimationFrame(move); }
     }
     move();
