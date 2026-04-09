@@ -137,13 +137,15 @@ document.addEventListener('pointerdown', (e)=>{
   if(isChooChoo){
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioCtx.createBufferSource();
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0.5; // sound2.mp3 と同じくらいに調整
     fetch('sounds/choochoo.mp3')
       .then(res=>res.arrayBuffer())
       .then(buf=>audioCtx.decodeAudioData(buf))
       .then(decoded=>{
         source.buffer = decoded;
-        source.playbackRate.value = 1.2; // 再生速度も上げる
-        source.connect(audioCtx.destination);
+        source.playbackRate.value = 1.2;
+        source.connect(gainNode).connect(audioCtx.destination);
         source.start(0);
       });
   }
@@ -210,7 +212,7 @@ function dragEnd(e){
 
       const speedMagnitude = Math.sqrt(vx*vx + vy*vy);
       if(speedMagnitude>0.1){ 
-        angle += speedMagnitude * 0.5 * 1.5; // 回転1.5倍
+        angle += speedMagnitude * 0.5 * 1.5;
       }
 
       item.gif.el.style.left=`${x}px`;
