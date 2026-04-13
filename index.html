@@ -269,7 +269,7 @@ document.addEventListener('pointerdown', (e)=>{
 
   const rand = Math.random()*100;
   let clickGif = document.createElement('img');
-  let audioSrc = 'sounds/sound1.mp3'; // ←修正済み
+  let audioSrc = 'sounds/sound1.mp3';
 
   if (rand < 7) clickGif.src='gifs/left.gif';
   else if (rand < 10){ clickGif.src='gifs/choochoo.gif'; audioSrc='sounds/choochoo.mp3'; }
@@ -285,7 +285,20 @@ document.addEventListener('pointerdown', (e)=>{
   else if (rand < 77) clickGif.src='gifs/eat.gif';
   else if (rand < 84) clickGif.src='gifs/hat.gif';
   else if (rand < 91) clickGif.src='gifs/computer.gif';
-  else clickGif.src='gifs/turuhashi.gif';
+
+  else {
+    const newSet = [
+      {gif:'gifs/turuhashi.gif'},
+      {gif:'gifs/black.gif'},
+      {gif:'gifs/marakasu.gif'},
+      {gif:'gifs/hispeed.gif'},
+      {gif:'gifs/partyhat.gif'}
+    ];
+
+    const pick = newSet[Math.floor(Math.random() * newSet.length)];
+    clickGif.src = pick.gif;
+    audioSrc = 'sounds/sound.mp3';
+  }
 
   clickGif.classList.add('added-click-gif');
 
@@ -340,7 +353,6 @@ document.addEventListener('pointerdown', (e)=>{
   addedGifs.push({el:clickGif, sizeInterval, rafId:null, vx, vy});
 
 }, true);
-
 // ドラッグ処理
 let dragging=false, capturedGifs=[];
 
